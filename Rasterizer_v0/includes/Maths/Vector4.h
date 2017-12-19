@@ -54,7 +54,18 @@ namespace Maths
 			if (this.w != 0)
 			{
 				this->Div(this.w);
+				this->w /= this->w;
 			}
+		}		
+		Vector4 Homogenize() const
+		{
+			if (this.w != 0)
+			{
+				Vector4 homogenized = this->Div(this.w);
+				homogenized->w /= this->w;
+				return homogenized;
+			}
+			return Vector4();
 		}
 
 		Vector4 Normalize() const
@@ -78,7 +89,15 @@ namespace Maths
 
 		T MagSq() const { return (this->x * this->x) + (this->y * this->y) + (this->z * this->z); }
 
-		T GetMagnitude() const { return sqrt(MagSq()); }
+		T GetMagnitude() const
+		{
+			if (this.w != 1.0f)
+			{
+				this->Homogenize();
+			}
+			return sqrt(MagSq());
+			
+		}
 		T DotProduct(const Vector4 &other) const { return (this->x * other.x) + (this->y * other.y) + (this->z * other.z); }
 		Vector4 CrossProduct(const Vector4 &other) const
 		{
