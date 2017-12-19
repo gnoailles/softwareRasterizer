@@ -1,4 +1,6 @@
-#include <Graphics/SDL_Manager.h>
+#include <Rendering/SDL_Manager.h>
+
+using namespace Rendering;
 
 SDL_Manager::SDL_Manager() : window{ nullptr }, renderer{ nullptr } 
 {}
