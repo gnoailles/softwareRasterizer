@@ -1,7 +1,8 @@
-#include "Graphics/SDL_Manager.h"
+#include <Rendering/SDL_Manager.h>
 #include "Maths/Vector3.h"
 
 using namespace Maths;
+using namespace Rendering;
 
 int main(int argc, char* argv[])
 {
