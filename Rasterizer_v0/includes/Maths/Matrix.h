@@ -49,16 +49,16 @@ namespace Maths
 
 		static Matrix<T, 4, 4> CreateTranslationMatrix(const Vector3<T>& p_translation)
 		{
-			return  { 1,0,0,p_translation.X(),
-					 0,1,0,p_translation.Y(),
-					 0,0,1,p_translation.Z(),
+			return  { 1,0,0,p_translation.x,
+					 0,1,0,p_translation.y,
+					 0,0,1,p_translation.z,
 					 0,0,0,1 };
 		}
 		static Matrix<T, 4, 4> CreateScaleMatrix(const Vector3<T>& p_scale)
 		{
-			return  { p_scale.X(),0,0,0,
-					 0,p_scale.Y(),0,0,
-					 0,0,p_scale.Z(),0,
+			return  { p_scale.x,0,0,0,
+					 0,p_scale.y,0,0,
+					 0,0,p_scale.z,0,
 					 0,0,0,1 };
 		}
 

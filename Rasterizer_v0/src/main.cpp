@@ -1,5 +1,6 @@
 #include <Rendering/SDL_Manager.h>
 #include "Maths/Vector3.h"
+#include "Maths/Matrix.h"
 
 using namespace Maths;
 using namespace Rendering;

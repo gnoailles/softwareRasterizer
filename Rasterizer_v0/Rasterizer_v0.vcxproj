@@ -128,14 +128,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Graphics\SDL_Manager.cpp" />
+    <ClCompile Include="src\Rendering\Rasterizer.cpp" />
+    <ClCompile Include="src\Graphics\Color.cpp" />
+    <ClCompile Include="src\Graphics\Mesh.cpp" />
+    <ClCompile Include="src\SceneObjects\Entity.cpp" />
+    <ClCompile Include="src\SceneObjects\Scene.cpp" />
+    <ClCompile Include="src\Rendering\SDL_Manager.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Graphics\Vertex.cpp" />
+    <ClCompile Include="src\Graphics\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="includes\Graphics\SDL_Manager.h" />
+    <ClInclude Include="includes\Graphics\Color.h" />
+    <ClInclude Include="includes\SceneObjects\Entity.h" />
+    <ClInclude Include="includes\Rendering\SDL_Manager.h" />
     <ClInclude Include="includes\Maths\Matrix.h" />
     <ClInclude Include="includes\Maths\Vector4.h" />
     <ClInclude Include="includes\Maths\Vector3.h" />
+    <ClInclude Include="includes\SceneObjects\Scene.h" />
+    <ClInclude Include="includes\Graphics\Mesh.h" />
+    <ClInclude Include="includes\Graphics\Vertex.h" />
+    <ClInclude Include="includes\Graphics\Texture.h" />
+    <ClInclude Include="includes\Rendering\Rasterizer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
