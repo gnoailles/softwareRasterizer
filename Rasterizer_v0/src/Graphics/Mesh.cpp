@@ -11,6 +11,21 @@ Mesh::~Mesh()
 {
 }
 
+unsigned Mesh::GetTriangleCount() const
+{
+	return m_indices.size() / 3;
+}
+
+Vertex* Mesh::GetTriangleVertices(unsigned triangleIndex)
+{
+	triangleIndex = (triangleIndex > 0) ? (triangleIndex - 1) * 3 : 0;
+	Vertex* triangle = new Vertex[3];
+	triangle[0] = this->m_vertices[this->m_indices[triangleIndex]];
+	triangle[1] = this->m_vertices[this->m_indices[triangleIndex + 1]];
+	triangle[2] = this->m_vertices[this->m_indices[triangleIndex + 2]];
+	return triangle;
+}
+
 Mesh* Mesh::CreateCube()
 {
 	Mesh* cube = new Mesh();
@@ -47,7 +62,7 @@ Mesh* Mesh::CreateSphere(const int& p_latitudeCount, const int& p_longitudeCount
 {
 	Mesh* sphere = new Mesh;
 
-	//TODO implement
+	//TODO implement Coord & Indices
 
 	return sphere;
 }

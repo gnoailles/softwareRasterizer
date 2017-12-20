@@ -18,3 +18,11 @@ void Texture::SetPixelColor(unsigned x, unsigned y, const Color& c)
 	unsigned line = (y > 0) ? (y - 1) * this->m_width : 0;
 	this->m_pixels[line + x] = c;
 }
+
+void Texture::Clear(const Color& c)
+{
+	for (int i = 0; i < this->m_width * this->m_height; ++i)
+	{
+		m_pixels[i] = c;
+	}
+}

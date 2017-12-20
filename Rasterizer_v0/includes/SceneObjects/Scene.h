@@ -1,5 +1,5 @@
 #pragma once
-#include "Entity.h"
+#include <SceneObjects/Entity.h>
 
 namespace SceneObjects
 {
@@ -10,5 +10,8 @@ namespace SceneObjects
 	public:
 		Scene();
 		~Scene();
+
+
+		const std::vector<Entity>& GetEntities() const;
 	};
 }

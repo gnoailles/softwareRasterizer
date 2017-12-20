@@ -212,16 +212,15 @@ namespace Maths
 					this->m_matrix[i][j] = VectorsMul(this->GetRow(i), p_other.GetColumn(j));
 		}
 
-		Matrix<T, R, C> Multiply(const Vector4<T> &p_other) const
+		Vector4<T> Multiply(const Vector4<T> &p_other) const
 		{
-			Matrix<T, R, C> multiply;
+			Vector4<T> multiply;
 			if (C != 4)
 				std::cout << "Can't be multiply" << std::endl;
 			else
 			{
-				for (unsigned int i = 0; i < R; ++i)
-					for (unsigned int j = 0; j < C; ++j)
-						multiply.m_matrix[i][j] = VectorsMul(this->GetRow(i), p_other);
+				for (unsigned int i = 0; i < 4; ++i)
+						multiply[i] = VectorsMul(this->GetRow(i), p_other);
 			}
 			return multiply;
 		}
@@ -480,7 +479,7 @@ namespace Maths
 		Matrix<T, R, C> operator*(const Matrix<T, R, C> &p_other) const { return Multiply(p_other); }
 		Matrix<T, R, C> operator*=(const Matrix<T, R, C> &p_other) { return Multiply(p_other); }
 
-		Matrix<T, R, C> operator*(const Vector4<T>& p_other) const { return Multiply(p_other); }
+		Vector4<T> operator*(const Vector4<T>& p_other) const { return Multiply(p_other); }
 		Matrix<T, R, C> operator*=(const Vector4<T> &p_other) { return Multiply(p_other); }
 
 		Matrix<T, R, C> operator*(const T &p_scalar) const { return Scale(p_scalar); }

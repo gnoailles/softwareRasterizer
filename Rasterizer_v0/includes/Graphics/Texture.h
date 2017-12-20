@@ -14,5 +14,6 @@ namespace Graphics
 		~Texture();
 
 		void SetPixelColor(unsigned int x, unsigned int y, const Color& c);
+		void Clear(const Color& c);
 	};
 }
