@@ -85,16 +85,12 @@ void Rasterizer::SwitchToOctantOne(const uint8_t octant, int& x, int& y)
 	case 1:		// X,Y
 		return;
 	case 2:		// Y,X
-		x ^= y;
-		y ^= x;
-		x ^= y;
+		std::swap(x, y);
 		break;
 	case 3:		// Y,-X
 		x = -x;
+		std::swap(x, y);
 
-		x ^= y;
-		y ^= x;
-		x ^= y;
 		break;
 	case 4:		// -X,Y
 		x = -x;
@@ -106,17 +102,13 @@ void Rasterizer::SwitchToOctantOne(const uint8_t octant, int& x, int& y)
 	case 6:		// -Y,-X
 		x = -x;
 		y = -y;
+		std::swap(x, y);
 
-		x ^= y;
-		y ^= x;
-		x ^= y;
 		break;
 	case 7:		// -Y,X
 		y = -y;
+		std::swap(x, y);
 
-		x ^= y;
-		y ^= x;
-		x ^= y;
 		break;
 	case 8:		// X,-Y
 		y = -y;
@@ -133,16 +125,11 @@ void Rasterizer::SwitchFromOctantOne(const uint8_t octant, int& x, int& y)
 	case 1:		// X,Y
 		return;
 	case 2:		// Y,X
-		x ^= y;
-		y ^= x;
-		x ^= y;
+		std::swap(x, y);
 		break;
 	case 3:		// -Y,X
 		y = -y;
-
-		x ^= y;
-		y ^= x;
-		x ^= y;
+		std::swap(x, y);
 		break;
 	case 4:		// -X,Y
 		x = -x;
@@ -154,17 +141,11 @@ void Rasterizer::SwitchFromOctantOne(const uint8_t octant, int& x, int& y)
 	case 6:		// -Y,-X
 		x = -x;
 		y = -y;
-
-		x ^= y;
-		y ^= x;
-		x ^= y;
+		std::swap(x, y);
 		break;
 	case 7:		// Y,-X
 		x = -x;
-
-		x ^= y;
-		y ^= x;
-		x ^= y;
+		std::swap(x, y);
 		break;
 	case 8:		// X,-Y
 		y = -y;
