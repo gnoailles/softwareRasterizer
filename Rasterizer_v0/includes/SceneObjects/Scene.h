@@ -11,7 +11,7 @@ namespace SceneObjects
 		Scene();
 		~Scene();
 
-
-		const std::vector<Entity>& GetEntities() const;
+		void AddEntity(const Entity& p_entity);
+		std::vector<Entity>& GetEntities();
 	};
 }

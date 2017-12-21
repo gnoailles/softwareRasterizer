@@ -15,14 +15,29 @@ Texture::~Texture()
 
 void Texture::SetPixelColor(unsigned x, unsigned y, const Color& c)
 {
-	unsigned line = (y > 0) ? (y - 1) * this->m_width : 0;
-	this->m_pixels[line + x] = c;
+	if (y >= this->m_height || x >= this->m_width) return;
+	this->m_pixels[y * this->m_width + x] = c;
 }
 
-void Texture::Clear(const Color& c)
+void Texture::Clear(const Color& c) const
 {
 	for (int i = 0; i < this->m_width * this->m_height; ++i)
 	{
 		m_pixels[i] = c;
 	}
+}
+
+Color* Texture::GetPixels()
+{
+	return this->m_pixels;
+}
+
+unsigned Texture::Width() const
+{
+	return this->m_width;
+}
+
+unsigned Texture::Height() const
+{
+	return this->m_height;
 }

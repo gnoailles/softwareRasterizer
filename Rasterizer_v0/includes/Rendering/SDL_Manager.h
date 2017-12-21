@@ -1,31 +1,28 @@
 #pragma once
 #include <SDL.h>
+#include "Graphics/Texture.h"
+
+using namespace Graphics;
 
 namespace Rendering
 {
 	class SDL_Manager
 	{
 	protected:
-		SDL_Window * window;
-		SDL_Renderer* renderer;
+		SDL_Window * m_window;
+		SDL_Renderer* m_renderer;
+		Texture* m_activeBuffer;
+
 	public:
 		SDL_Manager();
 		~SDL_Manager();
 
-		bool Init(int w_w, int w_h);
+		bool Init(int p_w, int p_h);
 		void Close();
 
-		void GetPixelRgb(SDL_Surface *surface,
-			int x,
-			int y,
-			Uint8 &r,
-			Uint8 &g,
-			Uint8 &b);
+		Texture* GetBuffer() const;
 
-		void SetColor(int r, int g, int b, int a = 255);
-		void DrawFillRect(int x, int y, int w = 64, int h = 64);
-
-		void ClearScreen();
+		void ClearBuffer(const Color& c = Color(0,0,0));
 		void UpdateWindow();
 	};
 }

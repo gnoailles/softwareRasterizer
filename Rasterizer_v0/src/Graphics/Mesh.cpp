@@ -16,9 +16,9 @@ unsigned Mesh::GetTriangleCount() const
 	return m_indices.size() / 3;
 }
 
-Vertex* Mesh::GetTriangleVertices(unsigned triangleIndex)
+const Vertex* Mesh::GetTriangleVertices(unsigned triangleIndex) const
 {
-	triangleIndex = (triangleIndex > 0) ? (triangleIndex - 1) * 3 : 0;
+	triangleIndex *= 3;
 	Vertex* triangle = new Vertex[3];
 	triangle[0] = this->m_vertices[this->m_indices[triangleIndex]];
 	triangle[1] = this->m_vertices[this->m_indices[triangleIndex + 1]];

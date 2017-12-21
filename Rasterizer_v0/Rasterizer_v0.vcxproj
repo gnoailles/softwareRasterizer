@@ -128,6 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Maths\Mat4.cpp" />
     <ClCompile Include="src\Rendering\Rasterizer.cpp" />
     <ClCompile Include="src\Graphics\Color.cpp" />
     <ClCompile Include="src\Graphics\Mesh.cpp" />
@@ -142,7 +143,7 @@
     <ClInclude Include="includes\Graphics\Color.h" />
     <ClInclude Include="includes\SceneObjects\Entity.h" />
     <ClInclude Include="includes\Rendering\SDL_Manager.h" />
-    <ClInclude Include="includes\Maths\Matrix.h" />
+    <ClInclude Include="includes\Maths\Mat4.h" />
     <ClInclude Include="includes\Maths\Vector4.h" />
     <ClInclude Include="includes\Maths\Vector3.h" />
     <ClInclude Include="includes\SceneObjects\Scene.h" />

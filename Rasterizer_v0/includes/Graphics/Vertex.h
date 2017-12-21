@@ -14,7 +14,6 @@ namespace Graphics
 	public:
 		Vertex();
 		Vertex(const Vec3& p_vec3);
-		Vertex(const Vec4& p_vec4);
 		Vertex(float x, float y, float z);
 		~Vertex();
 

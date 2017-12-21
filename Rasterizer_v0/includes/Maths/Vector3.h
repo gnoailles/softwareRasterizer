@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
+#endif
 
 #include <math.h>
 #include <string>
@@ -22,7 +24,7 @@ namespace Maths
 		}
 		static float ToRad(const double &angle)
 		{
-			return angle * M_PI / 180.0f;
+			return static_cast<float>(angle * M_PI / 180.0f);
 		}
 
 		Vector3(T p_x, T p_y, T p_z = 0.0f) : x{ p_x }, y{ p_y }, z{ p_z } {}
@@ -212,39 +214,26 @@ namespace Maths
 			return (x == 0 && y == 0 && z == 0);
 		}
 
-		T &operator[](const int coord)
+		T& operator[](const int coord)
 		{
 			if (coord == 0)
 				return this->x;
-			else if (coord == 1)
+			if (coord == 1)
 				return this->y;
-			else if (coord == 2)
+			if (coord == 2)
 				return this->z;
-			return 0;
+			return this->x;
 		}
-
-		T &operator[](const char coord)
+		const T& operator[](const int coord) const
 		{
-			if (coord == 'x')
+			if (coord == 0)
 				return this->x;
-			else if (coord == 'y')
+			if (coord == 1)
 				return this->y;
-			else if (coord == 'z')
+			if (coord == 2)
 				return this->z;
-			return 0;
+			return this->x;
 		}
-
-		T &operator[](const char coord[2])
-		{
-			if (coord[0] == 'x')
-				return this->x;
-			else if (coord[0] == 'y')
-				return this->y;
-			else if (coord[0] == 'z')
-				return this->z;
-			return 0;
-		}
-
 		// Comparisons
 
 		bool operator==(const Vector3 &other) const

@@ -16,7 +16,7 @@ namespace Graphics
 		~Mesh();
 
 		unsigned GetTriangleCount() const;
-		Vertex* GetTriangleVertices(unsigned triangleIndex);
+		const Vertex* GetTriangleVertices(unsigned triangleIndex) const;
 
 		static Mesh* CreateCube();
 		static Mesh* CreateSphere(const int& p_latitudeCount, const int& p_longitudeCount);

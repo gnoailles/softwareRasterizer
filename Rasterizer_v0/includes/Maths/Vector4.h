@@ -1,11 +1,12 @@
 #pragma once
 #pragma once
 
+#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
+#endif
 
 #include <math.h>
 #include <string>
-#include "Vector3.h"
 
 namespace Maths
 {
@@ -28,8 +29,8 @@ namespace Maths
 			return angle * M_PI / 180.0f;
 		}
 
-		Vector4(T p_x, T p_y, T p_z = 0.0f, T p_w = 1.0f) : x{ p_x }, y{ p_y }, z{ p_z }, w{ p_w } {}
-		Vector4(const Vec3& vec3, T p_w = 1.0f) : x{ vec3.x }, y{ vec3.y }, z{ vec3.z }, w{ p_w } {}
+		Vector4(T p_x = 0.0f, T p_y = 0.0f, T p_z = 0.0f, T p_w = 1.0f) : x{ p_x }, y{ p_y }, z{ p_z }, w{ p_w } {}
+		Vector4(const Vector3<T>& vec3, T p_w = 1.0f) : x{ vec3.x }, y{ vec3.y }, z{ vec3.z }, w{ p_w } {}
 		Vector4(const Vector4 &other)
 		{
 			this->x = other.x;
@@ -48,6 +49,17 @@ namespace Maths
 		}
 
 		~Vector4() = default;
+	
+		Vector4 Homogenize() const
+		{
+			if (this->w != 0)
+			{
+				Vector4 homogenized = this->Div(this->w);
+				homogenized.w /= this->w;
+				return homogenized;
+			}
+			return Vector4();
+		}
 
 		void Homogenize()
 		{
@@ -56,16 +68,6 @@ namespace Maths
 				this->Div(this.w);
 				this->w /= this->w;
 			}
-		}		
-		Vector4 Homogenize() const
-		{
-			if (this.w != 0)
-			{
-				Vector4 homogenized = this->Div(this.w);
-				homogenized->w /= this->w;
-				return homogenized;
-			}
-			return Vector4();
 		}
 
 		Vector4 Normalize() const
@@ -245,43 +247,36 @@ namespace Maths
 			return (x == 0 && y == 0 && z == 0);
 		}
 
-		T &operator[](const int coord)
+		Vector3<T> ToVec3() const
+		{
+			Vector4<T> homogenized = this->Homogenize();
+			return Vector3<T>(homogenized.x, homogenized.y, homogenized.z);
+		}
+
+		T& operator[](const int coord)
 		{
 			if (coord == 0)
 				return this->x;
-			else if (coord == 1)
+			if (coord == 1)
 				return this->y;
-			else if (coord == 2)
+			if (coord == 2)
 				return this->z;
-			else if (coord == 3)
+			if (coord == 3)
 				return this->w;
-			return 0;
+			return this->x;
 		}
 
-		T &operator[](const char coord)
+		const T& operator[](const int coord) const
 		{
-			if (coord == 'x')
+			if (coord == 0)
 				return this->x;
-			else if (coord == 'y')
+			if (coord == 1)
 				return this->y;
-			else if (coord == 'z')
+			if (coord == 2)
 				return this->z;
-			else if (coord == 'w')
+			if (coord == 3)
 				return this->w;
-			return 0;
-		}
-
-		T &operator[](const char coord[2])
-		{
-			if (coord[0] == 'x')
-				return this->x;
-			else if (coord[0] == 'y')
-				return this->y;
-			else if (coord[0] == 'z')
-				return this->z;
-			else if (coord[0] == 'w')
-				return this->w;
-			return 0;
+			return this->x;
 		}
 
 		// Comparisons

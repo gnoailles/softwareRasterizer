@@ -14,10 +14,15 @@ namespace Rendering
 		~Rasterizer();
 
 		void RenderScene(Scene* pScene, Texture* pTarget);
-		void DrawTriangle(const Vertex*, Texture* pTarget);
-		void DrawLine(int x1, int y1, int x2, int y2, Texture* pTarget);
+		void DrawTriangle(std::vector<Vertex> p_triangle, Texture* p_target);
+		void DrawBottomFlatTriangle(const std::vector<Vertex>& p_triangle, Texture* p_target);
+		void DrawTopFlatTriangle(const std::vector<Vertex>& p_triangle, Texture* p_target);
+		void DrawHorizontalLine(unsigned int x1, unsigned int x2, unsigned int y, Texture* p_target);
 
 	private:
+		void DrawLine(int x1, int y1, int x2, int y2, Texture* p_target);
+		void SortVerticesBy(std::vector<Vertex>& p_vertices, bool x = false, bool y = true, bool z = false);
+
 		static Vec4 TransformPos(const Vertex& v, Mat4 transform);
 
 		static void WorldToScreenCoord(int worldWidth, int worldHeight,
