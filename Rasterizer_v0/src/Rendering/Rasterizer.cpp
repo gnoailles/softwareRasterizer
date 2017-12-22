@@ -61,7 +61,11 @@ void Rasterizer::DrawTriangle(std::vector<Vertex> p_triangle, Texture* p_target)
 		const Vec3 v4 = Vec3( (int)(v1x +  (float)(v2y - v1y) / (float)(v3y - v1y) * (v3x - v1x)) , v2y);
 
 		const std::vector<Vertex> bottomFlatTriangle = {Vec3(v1x,v1y), Vec3(v2x,v2y), v4};
-		const std::vector<Vertex> topFlatTriangle = {Vec3(v2x,v2y), v4, Vec3(v3x,v3y)};
+		const std::vector<Vertex> topFlatTriangle = { Vec3(v2x,v2y), v4, Vec3(v3x,v3y) };
+
+		p_target->SetPixelColor(v1x, v1y, Color(255, 0, 0));
+		p_target->SetPixelColor(v2x, v2y, Color(0, 255, 0));
+		p_target->SetPixelColor(v3x, v3y, Color(0, 0, 255));
 
 		DrawBottomFlatTriangle(bottomFlatTriangle, p_target);
 		DrawTopFlatTriangle(topFlatTriangle, p_target);
@@ -158,7 +162,6 @@ void Rasterizer::DrawTopFlatTriangle(const std::vector<Vertex>& p_triangle, Text
 
 
 	//SETUP 2ND LINE
-
 	const uint8_t octant2 = GetLineOctant(v2x, v2y, v3x, v3y);
 	SwitchToOctantOne(octant2, v2x, v2y);
 	SwitchToOctantOne(octant2, v3x, v3y);
@@ -172,8 +175,8 @@ void Rasterizer::DrawTopFlatTriangle(const std::vector<Vertex>& p_triangle, Text
 	SwitchFromOctantOne(octant2, v2x, v2y);
 	SwitchFromOctantOne(octant2, v3x, v3y);
 
-	//SETUP 1ST LINE
 
+	//SETUP 1ST LINE
 	const uint8_t octant1 = GetLineOctant(v1x, v1y, v3x, v3y);
 	SwitchToOctantOne(octant1, v1x, v1y);
 	SwitchToOctantOne(octant1, v3x, v3y);
@@ -189,25 +192,29 @@ void Rasterizer::DrawTopFlatTriangle(const std::vector<Vertex>& p_triangle, Text
 		SwitchFromOctantOne(octant1, v1x, v1y);
 		SwitchFromOctantOne(octant1, v3x, v3y);
 
-		SwitchToOctantOne(octant2, v2x, v2y);
-		SwitchToOctantOne(octant2, v3x, v3y);
-
-		if (v2x <= v3x)
+		if (v2y < v1y)
 		{
-			SwitchFromOctantOne(octant2, v2x, v2y);
-			DrawHorizontalLine(v1x, v2x, v2y, p_target);
-			SwitchToOctantOne(octant2, v2x, v2y);
-			++v2x;
-			e2 += dy2;
-			if (e2 > 0)
-			{
-				++v2y;
-				e2 -= dx2;
-			}
-		}
 
-		SwitchFromOctantOne(octant2, v2x, v2y);
-		SwitchFromOctantOne(octant2, v3x, v3y);
+			SwitchToOctantOne(octant2, v2x, v2y);
+			SwitchToOctantOne(octant2, v3x, v3y);
+
+			if (v2x <= v3x)
+			{
+				SwitchFromOctantOne(octant2, v2x, v2y);
+				DrawHorizontalLine(v1x, v2x, v2y, p_target);
+				SwitchToOctantOne(octant2, v2x, v2y);
+				++v2x;
+				e2 += dy2;
+				if (e2 > 0)
+				{
+					++v2y;
+					e2 -= dx2;
+				}
+			}
+
+			SwitchFromOctantOne(octant2, v2x, v2y);
+			SwitchFromOctantOne(octant2, v3x, v3y);
+		}
 
 		SwitchToOctantOne(octant1, v1x, v1y);
 		SwitchToOctantOne(octant1, v3x, v3y);
@@ -265,7 +272,7 @@ void Rasterizer::SortVerticesBy(std::vector<Vertex>& p_vertices, bool x, bool y,
 
 	std::sort(p_vertices.begin(), p_vertices.end(), [coord](const Vertex & a, const Vertex & b) -> bool
 	{
-		return a.GetPosition()[coord] < b.GetPosition()[coord];
+		return a.GetPosition()[coord] > b.GetPosition()[coord];
 	});
 }
 
@@ -279,7 +286,7 @@ void Rasterizer::WorldToScreenCoord(int worldWidth, int worldHeight,
 									const Vec3& pos, int& targetX, int& targetY)
 {
 	targetX = static_cast<int>(((pos.x / worldWidth) + 1) * 0.5f * screenWidth);
-	targetY = static_cast<int>(((pos.y / worldHeight) + 1) * 0.5f * screenHeight);
+	targetY = static_cast<int>(screenHeight - ((pos.y / worldHeight) + 1) * 0.5f * screenHeight);
 }
 
 uint8_t Rasterizer::GetLineOctant(int x1, int y1, int x2, int y2)
