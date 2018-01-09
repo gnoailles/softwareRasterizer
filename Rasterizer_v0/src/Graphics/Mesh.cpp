@@ -31,29 +31,44 @@ Mesh* Mesh::CreateCube()
 	Mesh* cube = new Mesh();
 	cube->m_vertices.reserve(8);
 
-	cube->m_vertices.emplace_back(0.5f, 0.5f, 0.5f);
-	cube->m_vertices.emplace_back(0.5f, -0.5f, 0.5f);
-	cube->m_vertices.emplace_back(-0.5f, 0.5f, 0.5f);
+	//front
 	cube->m_vertices.emplace_back(-0.5f, -0.5f, 0.5f);
-	cube->m_vertices.emplace_back(0.5f, 0.5f, -0.5f);
-	cube->m_vertices.emplace_back(0.5f, -0.5f, -0.5f);
-	cube->m_vertices.emplace_back(-0.5f, 0.5f, -0.5f);
+	cube->m_vertices.emplace_back(0.5f, -0.5f, 0.5f);
+	cube->m_vertices.emplace_back(0.5f, 0.5f, 0.5f);
+	cube->m_vertices.emplace_back(-0.5f, 0.5f, 0.5f);
+	//back
 	cube->m_vertices.emplace_back(-0.5f, -0.5f, -0.5f);
+	cube->m_vertices.emplace_back(0.5f, -0.5f, -0.5f);
+	cube->m_vertices.emplace_back(0.5f, 0.5f, -0.5f);
+	cube->m_vertices.emplace_back(-0.5f, 0.5f, -0.5f);
 
 	cube->m_indices.reserve(36);
 
+	//{m_position={x=-1.96515512 y=-0.497457892 z=2.46270013 } }
+
+	// front
 	cube->AddTriangleIndices(0,1,2);
-	cube->AddTriangleIndices(1,2,3);
-	cube->AddTriangleIndices(0,4,1);
+	cube->AddTriangleIndices(2,3,0);
+
+	// top
+	cube->AddTriangleIndices(1,5,6);
+	cube->AddTriangleIndices(6,2,1);
+
+	// back
+	cube->AddTriangleIndices(7,6,5);
+	cube->AddTriangleIndices(5,4,7);
+
+	// bottom
+	cube->AddTriangleIndices(4,0,3);
+	cube->AddTriangleIndices(3,7,4);
+
+	// left
 	cube->AddTriangleIndices(4,5,1);
-	cube->AddTriangleIndices(0,2,6);
-	cube->AddTriangleIndices(0,6,4);
-	cube->AddTriangleIndices(6,4,5);
-	cube->AddTriangleIndices(6,5,7);
-	cube->AddTriangleIndices(6,2,3);
-	cube->AddTriangleIndices(6,3,7);
-	cube->AddTriangleIndices(7,5,3);
-	cube->AddTriangleIndices(5,3,1);
+	cube->AddTriangleIndices(1,0,4);
+
+	// right
+	cube->AddTriangleIndices(3,2,6);
+	cube->AddTriangleIndices(6,7,3);
 
 	return cube;
 }

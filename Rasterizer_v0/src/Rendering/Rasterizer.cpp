@@ -62,11 +62,6 @@ void Rasterizer::DrawTriangle(std::vector<Vertex> p_triangle, Texture* p_target)
 
 		const std::vector<Vertex> bottomFlatTriangle = {Vec3(v1x,v1y), Vec3(v2x,v2y), v4};
 		const std::vector<Vertex> topFlatTriangle = { Vec3(v2x,v2y), v4, Vec3(v3x,v3y) };
-
-		p_target->SetPixelColor(v1x, v1y, Color(255, 0, 0));
-		p_target->SetPixelColor(v2x, v2y, Color(0, 255, 0));
-		p_target->SetPixelColor(v3x, v3y, Color(0, 0, 255));
-
 		DrawBottomFlatTriangle(bottomFlatTriangle, p_target);
 		DrawTopFlatTriangle(topFlatTriangle, p_target);
 	}
@@ -75,156 +70,31 @@ void Rasterizer::DrawTriangle(std::vector<Vertex> p_triangle, Texture* p_target)
 
 void Rasterizer::DrawBottomFlatTriangle(const std::vector<Vertex>& p_triangle, Texture* p_target)
 {
-	int v1x = p_triangle[0].GetPosition().x;
-	int v1y = p_triangle[0].GetPosition().y;
+	float slope1 = (p_triangle[1].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[1].GetPosition().y - p_triangle[0].GetPosition().y);
+	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y - p_triangle[0].GetPosition().y);
 
-	int v2x = p_triangle[1].GetPosition().x;
-	int v2y = p_triangle[1].GetPosition().y;
+	float curx1 = p_triangle[0].GetPosition().x, curx2 = p_triangle[0].GetPosition().x;
 
-	int v3x = p_triangle[2].GetPosition().x;
-	int v3y = p_triangle[2].GetPosition().y;
-
-	//SETUP 2ND LINE
-	const uint8_t octant2 = GetLineOctant(v3x, v3y, v1x, v1y);
-	SwitchToOctantOne(octant2, v3x, v3y);
-	SwitchToOctantOne(octant2, v1x, v1y);
-	int dx2 = v1x - v3x;
-	int dy2 = v1y - v3y;
-
-	int e2 = dx2;
-	dx2 *= 2;
-	dy2 *= 2;
-
-	SwitchFromOctantOne(octant2, v3x, v3y);
-	SwitchFromOctantOne(octant2, v1x, v1y);
-
-
-	//SETUP 1st LINE
-	const uint8_t octant1 = GetLineOctant(v2x, v2y, v1x, v1y);
-	SwitchToOctantOne(octant1, v2x, v2y);
-	SwitchToOctantOne(octant1, v1x, v1y);
-	int dx1 = v1x - v2x;
-	int dy1 = v1y - v2y;
-
-	int e1 = dx1;
-	dx1 *= 2;
-	dy1 *= 2;
-
-	while (v2x <= v1x)
+	for (int scanlineY = p_triangle[0].GetPosition().y; scanlineY <= p_triangle[1].GetPosition().y; ++scanlineY)
 	{
-		SwitchFromOctantOne(octant1, v2x, v2y);
-		SwitchFromOctantOne(octant1, v1x, v1y);
-
-		if (v2y < v3y)
-		{
-			SwitchToOctantOne(octant2, v3x, v3y);
-			SwitchToOctantOne(octant2, v1x, v1y);
-			if (v3x <= v1x)
-			{
-				SwitchFromOctantOne(octant2, v3x, v3y);
-				DrawHorizontalLine(v2x, v3x, v3y, p_target);
-				SwitchToOctantOne(octant2, v3x, v3y);
-				++v3x;
-				e2 += dy2;
-				if (e2 > 0)
-				{
-					++v3y;
-					e2 -= dx2;
-				}
-			}
-
-			SwitchFromOctantOne(octant2, v3x, v3y);
-			SwitchFromOctantOne(octant2, v1x, v1y);
-		}
-
-		SwitchToOctantOne(octant1, v2x, v2y);
-		SwitchToOctantOne(octant1, v1x, v1y);
-		++v2x;
-		e1 += dy1;
-		if (e1 > 0)
-		{
-			++v2y;
-			e1 -= dx1;
-		}
+		DrawHorizontalLine(curx1, curx2, scanlineY, p_target);
+		curx1 += slope1;
+		curx2 += slope2;
 	}
 }
 
 void Rasterizer::DrawTopFlatTriangle(const std::vector<Vertex>& p_triangle, Texture* p_target)
 {
-	int v1x = p_triangle[0].GetPosition().x;
-	int v1y = p_triangle[0].GetPosition().y;
+	float slope1 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y - p_triangle[0].GetPosition().y);
+	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[1].GetPosition().x) / (p_triangle[2].GetPosition().y - p_triangle[1].GetPosition().y);
 
-	int v2x = p_triangle[1].GetPosition().x;
-	int v2y = p_triangle[1].GetPosition().y;
+	float curx1 = p_triangle[2].GetPosition().x, curx2 = p_triangle[2].GetPosition().x;
 
-	int v3x = p_triangle[2].GetPosition().x;
-	int v3y = p_triangle[2].GetPosition().y;
-
-
-	//SETUP 2ND LINE
-	const uint8_t octant2 = GetLineOctant(v2x, v2y, v3x, v3y);
-	SwitchToOctantOne(octant2, v2x, v2y);
-	SwitchToOctantOne(octant2, v3x, v3y);
-	int dx2 = v3x - v2x;
-	int dy2 = v3y - v2y;
-
-	int e2 = dx2;
-	dx2 *= 2;
-	dy2 *= 2;
-
-	SwitchFromOctantOne(octant2, v2x, v2y);
-	SwitchFromOctantOne(octant2, v3x, v3y);
-
-
-	//SETUP 1ST LINE
-	const uint8_t octant1 = GetLineOctant(v1x, v1y, v3x, v3y);
-	SwitchToOctantOne(octant1, v1x, v1y);
-	SwitchToOctantOne(octant1, v3x, v3y);
-	int dx1 = v3x - v1x;
-	int dy1 = v3y - v1y;
-
-	int e1 = dx1;
-	dx1 *= 2;
-	dy1 *= 2;
-
-	while (v1x <= v3x)
+	for (int scanlineY = p_triangle[2].GetPosition().y; scanlineY > p_triangle[0].GetPosition().y; --scanlineY)
 	{
-		SwitchFromOctantOne(octant1, v1x, v1y);
-		SwitchFromOctantOne(octant1, v3x, v3y);
-
-		if (v2y < v1y)
-		{
-
-			SwitchToOctantOne(octant2, v2x, v2y);
-			SwitchToOctantOne(octant2, v3x, v3y);
-
-			if (v2x <= v3x)
-			{
-				SwitchFromOctantOne(octant2, v2x, v2y);
-				DrawHorizontalLine(v1x, v2x, v2y, p_target);
-				SwitchToOctantOne(octant2, v2x, v2y);
-				++v2x;
-				e2 += dy2;
-				if (e2 > 0)
-				{
-					++v2y;
-					e2 -= dx2;
-				}
-			}
-
-			SwitchFromOctantOne(octant2, v2x, v2y);
-			SwitchFromOctantOne(octant2, v3x, v3y);
-		}
-
-		SwitchToOctantOne(octant1, v1x, v1y);
-		SwitchToOctantOne(octant1, v3x, v3y);
-		++v1x;
-		e1 += dy1;
-		if (e1 > 0)
-		{
-			++v1y;
-			e1 -= dx1;
-		}
+		DrawHorizontalLine(curx1, curx2, scanlineY, p_target);
+		curx1 -= slope1;
+		curx2 -= slope2;
 	}
 }
 

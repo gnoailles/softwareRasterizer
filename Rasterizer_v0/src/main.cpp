@@ -14,9 +14,10 @@ int main(int argc, char* argv[])
 	{
 		bool playing = true;
 		Entity cube(Mesh::CreateCube());
-		cube.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(-2.5, 0, 2)));
+//		cube.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(-2.5, 0, 2)));
 		std::vector<Vertex> triangle = { Vec3(-2.5,-4), Vec3(2.5,1), Vec3(-2,4)};
 		mainScene.AddEntity(cube);
+		Mat4 rotation = Mat4::CreateRotationMatrix(Vec3(2, 2, 2));
 		while (playing)
 		{
 			SDL_Event e;
@@ -29,7 +30,7 @@ int main(int argc, char* argv[])
 			}
 
 			graphics.ClearBuffer();
-			mainScene.GetEntities()[0].ApplyTransformation(Mat4::CreateTransformMatrix(Vec3(2, 2, 2), Vec3(0, 0, 0), Vec3(1, 1, 1)));
+			mainScene.GetEntities()[0].ApplyTransformation(rotation);
 			rasterizer.RenderScene(&mainScene, graphics.GetBuffer());
 //			rasterizer.DrawTriangle(triangle, graphics.GetBuffer());
 			graphics.UpdateWindow();
