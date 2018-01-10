@@ -75,6 +75,10 @@ namespace Maths
 			float crossZ = (this->x * other.y) - (other.x * this->y);
 
 			return Vector3(crossX, crossY, crossZ);
+		}		
+		float CrossProduct2D(const Vector3 &other) const
+		{
+			return ((this->x * other.y) - (this->y - other.x));
 		}
 
 		float AngleBetween(const Vector3 &other) const

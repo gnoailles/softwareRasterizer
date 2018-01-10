@@ -79,6 +79,34 @@ Mesh* Mesh::CreateSphere(const int& p_latitudeCount, const int& p_longitudeCount
 
 	//TODO implement Coord & Indices
 
+	sphere->m_vertices.reserve(p_latitudeCount * p_longitudeCount);
+	sphere->m_indices.reserve(p_latitudeCount * p_latitudeCount * 2);
+
+	for (double latNumber = 0; latNumber <= p_latitudeCount; latNumber++) {
+		double theta = latNumber * M_PI / p_latitudeCount;
+		double sinTheta = sin(theta);
+		double cosTheta = cos(theta);
+
+		for (double longNumber = 0; longNumber <= p_longitudeCount; longNumber++) {
+
+			double phi = longNumber * 2 * M_PI / p_longitudeCount;
+			double sinPhi = sin(phi);
+			double cosPhi = cos(phi);
+
+			sphere->m_vertices.emplace_back(cosPhi * sinTheta, cosTheta, sinPhi * sinTheta);
+		}
+	}
+	for (int latNumber2 = 0; latNumber2 < p_latitudeCount; latNumber2++) {
+		for (int longNumber = 0; longNumber < p_longitudeCount; longNumber++) {
+
+			int first = (latNumber2 * (p_longitudeCount + 1)) + longNumber;
+			int second = first + p_longitudeCount + 1;
+
+			sphere->AddTriangleIndices(first, second, first + 1);
+			sphere->AddTriangleIndices(second, second + 1, first + 1);
+		}
+	}
+
 	return sphere;
 }
 

@@ -14,9 +14,12 @@ int main(int argc, char* argv[])
 	{
 		bool playing = true;
 		Entity cube(Mesh::CreateCube());
-//		cube.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(-2.5, 0, 2)));
-		std::vector<Vertex> triangle = { Vec3(-2.5,-4), Vec3(2.5,1), Vec3(-2,4)};
+		Entity sphere(Mesh::CreateSphere(16,16));
+		cube.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(-2.5, 0, 2)));
+		sphere.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(2.5, 0, 2)));
+		std::vector<Vertex> triangle = { Vec3(-2,0), Vec3(0,4), Vec3(2,-2)};
 		mainScene.AddEntity(cube);
+		mainScene.AddEntity(sphere);
 		Mat4 rotation = Mat4::CreateRotationMatrix(Vec3(2, 2, 2));
 		while (playing)
 		{
@@ -31,8 +34,8 @@ int main(int argc, char* argv[])
 
 			graphics.ClearBuffer();
 			mainScene.GetEntities()[0].ApplyTransformation(rotation);
+			mainScene.GetEntities()[1].ApplyTransformation(rotation);
 			rasterizer.RenderScene(&mainScene, graphics.GetBuffer());
-//			rasterizer.DrawTriangle(triangle, graphics.GetBuffer());
 			graphics.UpdateWindow();
 		}
 		graphics.Close();
