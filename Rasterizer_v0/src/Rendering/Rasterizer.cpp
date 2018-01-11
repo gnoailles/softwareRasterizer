@@ -41,9 +41,10 @@ void Rasterizer::DrawTriangleBarycenter(std::vector<Vertex> p_triangle, Texture*
 	const Vec3 v1 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[1].GetPosition());
 	const Vec3 v2 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[2].GetPosition());
 
-	DrawLine(v0.x, v0.y, v1.x, v1.y, p_target);
-	DrawLine(v1.x, v1.y, v2.x, v2.y, p_target);
-	DrawLine(v2.x, v2.y, v0.x, v0.y, p_target);
+//	WIREFRAME
+//	DrawLine(v0.x, v0.y, v1.x, v1.y, p_target);
+//	DrawLine(v1.x, v1.y, v2.x, v2.y, p_target);
+//	DrawLine(v2.x, v2.y, v0.x, v0.y, p_target);
 
 	int maxX = std::max(v0.x, std::max(v1.x, v2.x));
 	int minX = std::min(v0.x, std::min(v1.x, v2.x));
@@ -55,6 +56,8 @@ void Rasterizer::DrawTriangleBarycenter(std::vector<Vertex> p_triangle, Texture*
 	maxY = (maxY > p_target->Height()) ? p_target->Height() : maxY;
 	minY = (minY < 0) ? 0 : minY;
 
+	float area = EdgeFunction(v0, v1, v2);
+
 	for (int y = minY; y <= maxY; y++)
 	{
 		for (int x = minX; x <= maxX; x++)
@@ -65,9 +68,16 @@ void Rasterizer::DrawTriangleBarycenter(std::vector<Vertex> p_triangle, Texture*
 			float w1 = EdgeFunction(v1, v2, p);
 			float w2 = EdgeFunction(v2, v0, p);
 
-			if (w0 <= 0 && w1 <= 0 && w2 <= 0)
+			if (w0 >= 0 && w1 >= 0 && w2 >= 0)
 			{
-				p_target->SetPixelColor(p.x, p.y, Color(255, 255, 255));
+				w0 /= area;
+				w1 /= area;
+				w2 /= area;
+				float r = w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].GetColor().r + w2 * p_triangle[2].GetColor().r;
+				float g = w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[2].GetColor().g;
+				float b = w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[2].GetColor().b;
+
+				p_target->SetPixelColor(p.x, p.y, Color(r, g, b));
 			}
 		}
 	}
@@ -207,6 +217,7 @@ Vec3 Rasterizer::WorldToScreenCoord(int worldWidth, int worldHeight, int screenW
 {
 	return Vec3(static_cast<int>(((pos.x / worldWidth) + 1) * 0.5f * screenWidth), static_cast<int>(screenHeight - ((pos.y / worldHeight) + 1) * 0.5f * screenHeight));
 }
+
 
 uint8_t Rasterizer::GetLineOctant(int x1, int y1, int x2, int y2)
 {

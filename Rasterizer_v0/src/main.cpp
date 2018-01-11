@@ -13,14 +13,19 @@ int main(int argc, char* argv[])
 	if (graphics.Init(1024, 768))
 	{
 		bool playing = true;
-		Entity cube(Mesh::CreateCube());
-		Entity sphere(Mesh::CreateSphere(16,16));
-		cube.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(-2.5, 0, 2)));
-		sphere.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(2.5, 0, 2)));
-		std::vector<Vertex> triangle = { Vec3(-2,0), Vec3(0,4), Vec3(2,-2)};
-		mainScene.AddEntity(cube);
-		mainScene.AddEntity(sphere);
-		Mat4 rotation = Mat4::CreateRotationMatrix(Vec3(2, 2, 2));
+		//Step 0
+//		Entity cube(Mesh::CreateCube());
+//		Entity sphere(Mesh::CreateSphere(16, 16));
+//
+//		cube.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(-2.5, 0, 2)));
+//		sphere.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(2.5, 0, 2)));
+//		mainScene.AddEntity(cube);
+//		mainScene.AddEntity(sphere);
+//		Mat4 rotation = Mat4::CreateRotationMatrix(Vec3(2, 2, 2));
+
+		//Step 1
+		std::vector<Vertex> triangle = { Vertex(-0.5,-0.5,0,Color(255,0,0)), Vertex(0.5,-0.5,0,Color(0,255,0)), Vertex(0,0.5,0,Color(0,0,255)) };
+		
 		while (playing)
 		{
 			SDL_Event e;
@@ -33,9 +38,14 @@ int main(int argc, char* argv[])
 			}
 
 			graphics.ClearBuffer();
-			mainScene.GetEntities()[0].ApplyTransformation(rotation);
-			mainScene.GetEntities()[1].ApplyTransformation(rotation);
-			rasterizer.RenderScene(&mainScene, graphics.GetBuffer());
+			//Step 0
+//				mainScene.GetEntities()[0].ApplyTransformation(rotation);
+//				mainScene.GetEntities()[1].ApplyTransformation(rotation);
+//				rasterizer.RenderScene(&mainScene, graphics.GetBuffer());
+
+			//Step 1
+			rasterizer.DrawTriangleBarycenter(triangle, graphics.GetBuffer());
+
 			graphics.UpdateWindow();
 		}
 		graphics.Close();
