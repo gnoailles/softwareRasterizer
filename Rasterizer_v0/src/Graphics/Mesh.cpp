@@ -110,6 +110,14 @@ Mesh* Mesh::CreateSphere(const int& p_latitudeCount, const int& p_longitudeCount
 	return sphere;
 }
 
+void Graphics::Mesh::SetColor(const Color & p_color)
+{
+	for (Vertex& vertex : m_vertices)
+	{
+		vertex.SetColor(p_color);
+	}
+}
+
 void Mesh::AddTriangleIndices(const int p_idx1, const int p_idx2, const int p_idx3)
 {
 	this->m_indices.push_back(p_idx1);

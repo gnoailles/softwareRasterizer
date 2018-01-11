@@ -3,14 +3,28 @@
 
 using namespace Rendering;
 
-Rasterizer::Rasterizer() {}
+Rasterizer::Rasterizer(unsigned int p_width, unsigned int p_height) 
+{
+	m_depthBuffer = new float[p_width * p_height];
 
+	for (int i = 0; i < p_width * p_height; i++)
+	{
+		m_depthBuffer[i] = FLT_MAX;
+	}
+}
 
-Rasterizer::~Rasterizer() {}
+Rasterizer::~Rasterizer() 
+{
+	delete[] m_depthBuffer;
+}
 
 void Rasterizer::RenderScene(Scene* pScene, Texture* pTarget)
 {
 	pTarget->Clear(Color(0, 0, 0));
+	for (int i = 0; i < pTarget->Height() * pTarget->Width(); i++)
+	{
+		m_depthBuffer[i] = FLT_MAX;
+	}
 	std::vector<Entity> entities = pScene->GetEntities();
 	const Mesh* mesh = nullptr;
 	for (Entity entity : entities)
@@ -73,11 +87,20 @@ void Rasterizer::DrawTriangleBarycenter(std::vector<Vertex> p_triangle, Texture*
 				w0 /= area;
 				w1 /= area;
 				w2 /= area;
-				float r = w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].GetColor().r + w2 * p_triangle[2].GetColor().r;
-				float g = w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[2].GetColor().g;
-				float b = w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[2].GetColor().b;
 
-				p_target->SetPixelColor(p.x, p.y, Color(r, g, b));
+
+				float depth = w0 * p_triangle[0].GetPosition().z + w1 * p_triangle[1].GetPosition().z + w2 * p_triangle[2].GetPosition().z;
+
+				if (depth < m_depthBuffer[y * p_target->Width() + x])
+				{
+					m_depthBuffer[y * p_target->Width() + x] = depth;
+
+					float r = w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].GetColor().r + w2 * p_triangle[2].GetColor().r;
+					float g = w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[2].GetColor().g;
+					float b = w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[2].GetColor().b;
+
+					p_target->SetPixelColor(p.x, p.y, Color(r, g, b));
+				}
 			}
 		}
 	}

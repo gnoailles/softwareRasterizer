@@ -25,3 +25,8 @@ const Color& Vertex::GetColor() const
 {
 	return this->m_color;
 }
+
+void Graphics::Vertex::SetColor(const Color & p_color)
+{
+	this->m_color = p_color;
+}

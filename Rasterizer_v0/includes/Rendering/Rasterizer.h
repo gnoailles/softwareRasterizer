@@ -9,8 +9,11 @@ namespace Rendering
 
 	class Rasterizer
 	{
+	private:
+		float* m_depthBuffer;
+
 	public:
-		Rasterizer();
+		Rasterizer(unsigned int p_width, unsigned int p_height);
 		~Rasterizer();
 
 		void RenderScene(Scene* pScene, Texture* pTarget);

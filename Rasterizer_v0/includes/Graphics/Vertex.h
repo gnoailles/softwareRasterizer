@@ -21,5 +21,7 @@ namespace Graphics
 
 		const Vec3& GetPosition() const;
 		const Color& GetColor() const;
+
+		void SetColor(const Color& p_color);
 	};
 }
