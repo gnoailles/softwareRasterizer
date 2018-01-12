@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <Graphics/Vertex.h>
+#include <memory>
 
 using namespace Maths;
 
@@ -18,8 +19,8 @@ namespace Graphics
 		unsigned GetTriangleCount() const;
 		const Vertex* GetTriangleVertices(unsigned triangleIndex) const;
 
-		static Mesh* CreateCube();
-		static Mesh* CreateSphere(const int& p_latitudeCount, const int& p_longitudeCount);
+		static std::shared_ptr<Mesh> CreateCube();
+		static std::shared_ptr<Mesh> CreateSphere(const int& p_latitudeCount, const int& p_longitudeCount);
 		void SetColor(const Color& p_color);
 
 	private:

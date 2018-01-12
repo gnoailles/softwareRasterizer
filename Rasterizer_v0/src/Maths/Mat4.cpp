@@ -73,12 +73,12 @@ Mat4 Mat4::CreateZRotationMatrix(const float p_angle)
 
 Mat4 Mat4::CreateRotationMatrix(const Vec3& p_rotation)
 {
-	return  CreateXRotationMatrix(Vec3::ToRad(p_rotation.x)) *
-			CreateYRotationMatrix(Vec3::ToRad(p_rotation.y)) *
+	return  CreateYRotationMatrix(Vec3::ToRad(p_rotation.y)) *
+			CreateXRotationMatrix(Vec3::ToRad(p_rotation.x)) *
 			CreateZRotationMatrix(Vec3::ToRad(p_rotation.z));
 }
 
-Mat4 Mat4::CreateTransformMatrix(const Vec3& p_rotation, const Vec3& p_position, const Vec3& p_scale)
+Mat4 Mat4::CreateTransformMatrix(const Vec3& p_position, const Vec3& p_rotation, const Vec3& p_scale)
 {
 	return  CreateTranslationMatrix(p_position) *
 			CreateRotationMatrix(p_rotation) * 

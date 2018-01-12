@@ -26,9 +26,9 @@ const Vertex* Mesh::GetTriangleVertices(unsigned triangleIndex) const
 	return triangle;
 }
 
-Mesh* Mesh::CreateCube()
+std::shared_ptr<Mesh> Mesh::CreateCube()
 {
-	Mesh* cube = new Mesh();
+	std::shared_ptr<Mesh> cube (new Mesh());
 	cube->m_vertices.reserve(8);
 
 	//front
@@ -73,11 +73,9 @@ Mesh* Mesh::CreateCube()
 	return cube;
 }
 
-Mesh* Mesh::CreateSphere(const int& p_latitudeCount, const int& p_longitudeCount)
+std::shared_ptr<Mesh> Mesh::CreateSphere(const int& p_latitudeCount, const int& p_longitudeCount)
 {
-	Mesh* sphere = new Mesh;
-
-	//TODO implement Coord & Indices
+	std::shared_ptr<Mesh>sphere(new Mesh);
 
 	sphere->m_vertices.reserve(p_latitudeCount * p_longitudeCount);
 	sphere->m_indices.reserve(p_latitudeCount * p_latitudeCount * 2);
@@ -110,7 +108,7 @@ Mesh* Mesh::CreateSphere(const int& p_latitudeCount, const int& p_longitudeCount
 	return sphere;
 }
 
-void Graphics::Mesh::SetColor(const Color & p_color)
+void Mesh::SetColor(const Color & p_color)
 {
 	for (Vertex& vertex : m_vertices)
 	{

@@ -7,7 +7,7 @@ Rasterizer::Rasterizer(unsigned int p_width, unsigned int p_height)
 {
 	m_depthBuffer = new float[p_width * p_height];
 
-	for (int i = 0; i < p_width * p_height; i++)
+	for (unsigned int i = 0; i < p_width * p_height; i++)
 	{
 		m_depthBuffer[i] = FLT_MAX;
 	}
@@ -18,52 +18,47 @@ Rasterizer::~Rasterizer()
 	delete[] m_depthBuffer;
 }
 
-void Rasterizer::RenderScene(Scene* pScene, Texture* pTarget)
+void Rasterizer::RenderScene(Scene* pScene, Texture* pTarget) const
 {
 	pTarget->Clear(Color(0, 0, 0));
-	for (int i = 0; i < pTarget->Height() * pTarget->Width(); i++)
+	for (unsigned int i = 0; i < pTarget->Height() * pTarget->Width(); i++)
 	{
 		m_depthBuffer[i] = FLT_MAX;
 	}
 	std::vector<Entity> entities = pScene->GetEntities();
-	const Mesh* mesh = nullptr;
 	for (Entity entity : entities)
 	{
-		mesh = entity.GetMesh();
+		const std::shared_ptr<Mesh> mesh = entity.GetMesh();
 		for (unsigned i = 0; i < mesh->GetTriangleCount(); ++i)
 		{
 			const Vertex* triangle = mesh->GetTriangleVertices(i);
-			const std::vector<Vertex> transformedTriangle = { 
-				TransformPos(triangle[0].GetPosition(), entity.GetTransformation()).ToVec3(),
-				TransformPos(triangle[1].GetPosition(), entity.GetTransformation()).ToVec3(),
-				TransformPos(triangle[2].GetPosition(), entity.GetTransformation()).ToVec3() };
+			Vertex transformedTriangle[3] = {
+				TransformPos(triangle[0], entity.GetTransformation()),
+				TransformPos(triangle[1], entity.GetTransformation()),
+				TransformPos(triangle[2], entity.GetTransformation())};
 
 			delete[] triangle;
 			triangle = nullptr;
 //			DrawTriangleScanline(transformedTriangle, pTarget);
+//			DrawWireframe(transformedTriangle, pTarget);
 			DrawTriangleBarycenter(transformedTriangle, pTarget);
 		}
 	}
 }
 
-void Rasterizer::DrawTriangleBarycenter(std::vector<Vertex> p_triangle, Texture* p_target) const
+
+
+void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_target) const
 {
-	if (p_triangle.size() != 3)
-		return;
 
 	const Vec3 v0 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[0].GetPosition());
 	const Vec3 v1 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[1].GetPosition());
 	const Vec3 v2 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[2].GetPosition());
 
-//	WIREFRAME
-//	DrawLine(v0.x, v0.y, v1.x, v1.y, p_target);
-//	DrawLine(v1.x, v1.y, v2.x, v2.y, p_target);
-//	DrawLine(v2.x, v2.y, v0.x, v0.y, p_target);
-
-	int maxX = std::max(v0.x, std::max(v1.x, v2.x));
-	int minX = std::min(v0.x, std::min(v1.x, v2.x));
-	int maxY = std::max(v0.y, std::max(v1.y, v2.y));
-	int minY = std::min(v0.y, std::min(v1.y, v2.y));
+	unsigned int maxX = static_cast<int>(std::max(v0.x, std::max(v1.x, v2.x)));
+	unsigned int minX = static_cast<int>(std::min(v0.x, std::min(v1.x, v2.x)));
+	unsigned int maxY = static_cast<int>(std::max(v0.y, std::max(v1.y, v2.y)));
+	unsigned int minY = static_cast<int>(std::min(v0.y, std::min(v1.y, v2.y)));
 
 	maxX = (maxX > p_target->Width()) ? p_target->Width() : maxX;
 	minX = (minX < 0) ? 0 : minX;
@@ -72,11 +67,11 @@ void Rasterizer::DrawTriangleBarycenter(std::vector<Vertex> p_triangle, Texture*
 
 	float area = EdgeFunction(v0, v1, v2);
 
-	for (int y = minY; y <= maxY; y++)
+	for (unsigned int y = minY; y <= maxY; y++)
 	{
-		for (int x = minX; x <= maxX; x++)
+		for (unsigned int x = minX; x <= maxX; x++)
 		{
-			const Vec3 p(x, y);
+			const Vec3 p(static_cast<float>(x), static_cast<float>(y));
 
 			float w0 = EdgeFunction(v0, v1, p);
 			float w1 = EdgeFunction(v1, v2, p);
@@ -95,85 +90,94 @@ void Rasterizer::DrawTriangleBarycenter(std::vector<Vertex> p_triangle, Texture*
 				{
 					m_depthBuffer[y * p_target->Width() + x] = depth;
 
-					float r = w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].GetColor().r + w2 * p_triangle[2].GetColor().r;
-					float g = w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[2].GetColor().g;
-					float b = w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[2].GetColor().b;
+					const unsigned char r = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].GetColor().r + w2 * p_triangle[2].GetColor().r);
+					const unsigned char g = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[2].GetColor().g);
+					const unsigned char b = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[2].GetColor().b);
 
-					p_target->SetPixelColor(p.x, p.y, Color(r, g, b));
+					p_target->SetPixelColor(x, y, Color(r, g, b));
 				}
 			}
 		}
 	}
 }
 
-void Rasterizer::DrawTriangleScanline(std::vector<Vertex> p_triangle, Texture* p_target)
+void Rasterizer::DrawWireframe(const Vertex* p_triangle, Texture* p_target) const
 {
-	if (p_triangle.size() != 3)
-		return;
+	const Vec3 v0 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[0].GetPosition());
+	const Vec3 v1 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[1].GetPosition());
+	const Vec3 v2 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[2].GetPosition());
+
+	//	WIREFRAME
+	DrawLine((int)v0.x, (int)v0.y, (int)v1.x, (int)v1.y, p_target);
+	DrawLine((int)v1.x, (int)v1.y, (int)v2.x, (int)v2.y, p_target);
+	DrawLine((int)v2.x, (int)v2.y, (int)v0.x, (int)v0.y, p_target);
+}
+
+void Rasterizer::DrawTriangleScanline(Vertex* p_triangle, Texture* p_target)
+{
 
 	SortVerticesBy(p_triangle);
-	int v1x, v1y;
-	int v2x, v2y;
-	int v3x, v3y;
 
-	WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[0].GetPosition(), v1x, v1y);
-	WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[1].GetPosition(), v2x, v2y);
-	WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[2].GetPosition(), v3x, v3y);
+	const Vec3 v1 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[0].GetPosition());
+	const Vec3 v2 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[1].GetPosition());
+	const Vec3 v3 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[2].GetPosition());
 	
-	if (v2y == v3y)
+	if (v2.y == v3.y)
 	{
-		DrawBottomFlatTriangle(std::vector<Vertex> {Vec3(v1x,v1y),Vec3(v2x,v2y),Vec3(v3x,v3y)}, p_target);
+		const Vertex triangle[3] = {v1,v2,v3};
+		DrawBottomFlatTriangle(triangle, p_target);
 	}
-	else if (v1y == v2y)
+	else if (v1.y == v2.y)
 	{
-		DrawTopFlatTriangle(std::vector<Vertex> {Vec3(v1x, v1y), Vec3(v2x, v2y), Vec3(v3x, v3y)}, p_target);
+		const Vertex triangle[3] = { v1, v2, v3 };
+		DrawTopFlatTriangle(triangle , p_target);
 	}
 	else
 	{
-		const Vec3 v4 = Vec3( (int)(v1x +  (float)(v2y - v1y) / (float)(v3y - v1y) * (v3x - v1x)) , v2y);
-
-		const std::vector<Vertex> bottomFlatTriangle = {Vec3(v1x,v1y), Vec3(v2x,v2y), v4};
-		const std::vector<Vertex> topFlatTriangle = { Vec3(v2x,v2y), v4, Vec3(v3x,v3y) };
+		const Vec3 v4 (v1.x + (float)(v2.y - v1.y) / (float)(v3.y - v1.y) * (v3.x - v1.x) , v2.y);
+		
+		const Vertex bottomFlatTriangle[3] = {v1, v2, v4};
+		const Vertex topFlatTriangle[3] = { v2, v4, v3 };
 		DrawBottomFlatTriangle(bottomFlatTriangle, p_target);
 		DrawTopFlatTriangle(topFlatTriangle, p_target);
 	}
 
 }
 
-void Rasterizer::DrawBottomFlatTriangle(const std::vector<Vertex>& p_triangle, Texture* p_target)
+void Rasterizer::DrawBottomFlatTriangle(const Vertex* p_triangle, Texture* p_target) const
 {
 	float slope1 = (p_triangle[1].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[1].GetPosition().y - p_triangle[0].GetPosition().y);
 	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y - p_triangle[0].GetPosition().y);
 
-	float curx1 = p_triangle[0].GetPosition().x, curx2 = p_triangle[0].GetPosition().x;
+	unsigned int curx1 = (unsigned)p_triangle[0].GetPosition().x, curx2 = (unsigned)p_triangle[0].GetPosition().x;
 
-	for (int scanlineY = p_triangle[0].GetPosition().y; scanlineY <= p_triangle[1].GetPosition().y; ++scanlineY)
+	for (int scanlineY = (int)p_triangle[0].GetPosition().y; scanlineY <= p_triangle[1].GetPosition().y; ++scanlineY)
 	{
 		DrawHorizontalLine(curx1, curx2, scanlineY, p_target);
-		curx1 += slope1;
-		curx2 += slope2;
+		curx1 += (unsigned)slope1;
+		curx2 += (unsigned)slope2;
 	}
 }
 
-void Rasterizer::DrawTopFlatTriangle(const std::vector<Vertex>& p_triangle, Texture* p_target)
+void Rasterizer::DrawTopFlatTriangle(const Vertex* p_triangle, Texture* p_target) const
 {
 	float slope1 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y - p_triangle[0].GetPosition().y);
 	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[1].GetPosition().x) / (p_triangle[2].GetPosition().y - p_triangle[1].GetPosition().y);
 
-	float curx1 = p_triangle[2].GetPosition().x, curx2 = p_triangle[2].GetPosition().x;
+	unsigned int curx1 = (unsigned)p_triangle[2].GetPosition().x, curx2 = (unsigned)p_triangle[2].GetPosition().x;
 
-	for (int scanlineY = p_triangle[2].GetPosition().y; scanlineY > p_triangle[0].GetPosition().y; --scanlineY)
+	for (int scanlineY = (int)p_triangle[2].GetPosition().y; scanlineY > p_triangle[0].GetPosition().y; --scanlineY)
 	{
 		DrawHorizontalLine(curx1, curx2, scanlineY, p_target);
-		curx1 -= slope1;
-		curx2 -= slope2;
+		curx1 -= (unsigned)slope1;
+		curx2 -= (unsigned)slope2;
 	}
 }
 
 void Rasterizer::DrawHorizontalLine(unsigned int x1, unsigned int x2, unsigned int y, Texture* p_target, Color p_color) const
 {
 	if (x1 > x2) std::swap(x1, x2);
-	for (int x = x1; x <= x2; ++x)
+	for (unsigned int x = x1; x <= x2; ++x)
 	{
 		p_target->SetPixelColor(x, y, p_color);
 	}
@@ -206,31 +210,9 @@ void Rasterizer::DrawLine(int x1, int y1, int x2, int y2, Texture* p_target)
 	}
 }
 
-inline float Rasterizer::EdgeFunction(const Vec3& a, const Vec3& b, const Vec3& c)
-{
-	return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
-}
-
-void Rasterizer::SortVerticesBy(std::vector<Vertex>& p_vertices, bool x, bool y, bool z)
-{
-	int coord = 1;
-	if (x) coord = 0;
-	else if (z) coord = 2;
-
-	std::sort(p_vertices.begin(), p_vertices.end(), [coord](const Vertex & a, const Vertex & b) -> bool
-	{
-		return a.GetPosition()[coord] > b.GetPosition()[coord];
-	});
-}
-
-Vec4 Rasterizer::TransformPos(const Vertex& v, Mat4 transform)
-{
-	return transform * Vec4(v.GetPosition());
-}
-
-void Rasterizer::WorldToScreenCoord(int worldWidth, int worldHeight, 
-									int screenWidth, int screenHeight, 
-									const Vec3& pos, int& targetX, int& targetY)
+void Rasterizer::WorldToScreenCoord(const int worldWidth, const int worldHeight,
+                                    const int screenWidth, const int screenHeight,
+	const Vec3& pos, int& targetX, int& targetY)
 {
 	targetX = static_cast<int>(((pos.x / worldWidth) + 1) * 0.5f * screenWidth);
 	targetY = static_cast<int>(screenHeight - ((pos.y / worldHeight) + 1) * 0.5f * screenHeight);
@@ -238,7 +220,40 @@ void Rasterizer::WorldToScreenCoord(int worldWidth, int worldHeight,
 
 Vec3 Rasterizer::WorldToScreenCoord(int worldWidth, int worldHeight, int screenWidth, int screenHeight, const Vec3& pos)
 {
-	return Vec3(static_cast<int>(((pos.x / worldWidth) + 1) * 0.5f * screenWidth), static_cast<int>(screenHeight - ((pos.y / worldHeight) + 1) * 0.5f * screenHeight));
+	return Vec3(((pos.x / worldWidth) + 1) * 0.5f * screenWidth, screenHeight - ((pos.y / worldHeight) + 1) * 0.5f * screenHeight);
+}
+
+inline float Rasterizer::EdgeFunction(const Vec3& a, const Vec3& b, const Vec3& c)
+{
+	return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+}
+
+void Rasterizer::SortVerticesBy(Vertex* p_vertices, bool x, bool y, bool z)
+{
+	int coord = 1;
+	if (x) coord = 0;
+	else if (z) coord = 2;
+
+	Vertex temp;
+
+	for (int i = 0; i < 3; ++i)
+	{
+		for (int j = i + 1; j <= 3; ++j)
+		{
+			if (p_vertices[i].GetPosition()[coord] > p_vertices[j].GetPosition()[coord])
+			{
+				temp = p_vertices[i];
+				p_vertices[i] = p_vertices[j];
+				p_vertices[j] = temp;
+			}
+		}
+	}
+}
+
+Vertex Rasterizer::TransformPos(const Vertex& v, Mat4 transform)
+{
+	const Vec3 transformedPos = (transform * v.GetPosition()).ToVec3();
+	return Vertex(transformedPos, v.GetColor());
 }
 
 

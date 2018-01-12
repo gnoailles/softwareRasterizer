@@ -26,7 +26,12 @@ const Color& Vertex::GetColor() const
 	return this->m_color;
 }
 
-void Graphics::Vertex::SetColor(const Color & p_color)
+void Vertex::SetColor(const Color & p_color)
 {
 	this->m_color = p_color;
+}
+
+void Vertex::SetPosition(const Vec3& p_pos)
+{
+	this->m_position = p_pos;
 }

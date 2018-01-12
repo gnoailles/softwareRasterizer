@@ -31,7 +31,7 @@ namespace Maths
 
 		static Mat4 CreateRotationMatrix(const Vec3& p_rotation);
 
-		static Mat4 CreateTransformMatrix(const Vec3& p_rotation, const Vec3& p_position, const Vec3& p_scale);
+		static Mat4 CreateTransformMatrix(const Vec3& p_position, const Vec3& p_rotation, const Vec3& p_scale);
 
 
 		// SCALAR OPERATIONS
