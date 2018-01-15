@@ -16,12 +16,12 @@ namespace Rendering
 		Rasterizer(unsigned int p_width, unsigned int p_height);
 		~Rasterizer();
 
-		void RenderScene(Scene* pScene, Texture* pTarget) const;
+		void RenderScene(Scene* p_scene, Texture* p_target) const;
 
-		void DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_target) const;
+		void DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_target, const std::vector<Light>& p_lights) const;
 		void DrawWireframe(const Vertex* p_triangle, Texture* p_target) const;
 
-		void DrawTriangleScanline(Vertex* p_triangle, Texture* p_target);
+		void DrawTriangleScanline(Vertex* p_triangle, Texture* p_target) const;
 		void DrawBottomFlatTriangle(const Vertex* p_triangle, Texture* p_target) const;
 		void DrawTopFlatTriangle(const Vertex* p_triangle, Texture* p_target) const;
 
@@ -35,10 +35,11 @@ namespace Rendering
 		int screenWidth, int screenHeight, const Vec3& pos);
 
 	private:
+
 		inline static float EdgeFunction(const Vec3 &a, const Vec3 &b, const Vec3 &c);
 		static void SortVerticesBy(Vertex* p_vertices, bool x = false, bool y = true, bool z = false);
 
-		static Vertex TransformPos(const Vertex& v, Mat4 transform);
+		static Vertex TransformVertex(const Vertex& v, const Mat4& transform);
 
 		static uint8_t GetLineOctant(int x1, int y1, int x2, int y2);
 		static void SwitchToOctantOne(const uint8_t octant, int& x, int& y);

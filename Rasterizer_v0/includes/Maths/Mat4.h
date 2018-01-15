@@ -5,6 +5,7 @@
 #include <cmath>
 #include <Maths/Vector3.h>
 #include <Maths/Vector4.h>
+#include "Mat3.h"
 
 namespace Maths
 {
@@ -20,6 +21,8 @@ namespace Maths
 
 		~Mat4() {}
 
+		//UTILS
+		static int Sign(const unsigned int &p_i, const unsigned int &p_j);
 
 		// TRANFORMATION MATRICES
 		static Mat4 CreateTranslationMatrix(const Vector3<float>& p_translation);
@@ -65,6 +68,10 @@ namespace Maths
 
 		// MATRICES TRANSFORMATIONS
 		Mat4 Transpose() const;
+		float Determinant() const;
+		Mat4 Adjoint() const;
+		Mat3 Minor(int i, int j) const;
+		Mat4 Inverse() const;
 
 	
 		// GETTERS

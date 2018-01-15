@@ -52,7 +52,7 @@ namespace Maths
 			{
 				return this->Div(mag);
 			}
-			return this;
+			return *this;
 		}
 
 		void Normalize()

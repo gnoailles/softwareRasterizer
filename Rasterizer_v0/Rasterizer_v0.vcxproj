@@ -146,6 +146,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Maths\Mat3.cpp" />
+    <ClCompile Include="src\SceneObjects\Light.cpp" />
     <ClCompile Include="src\Maths\Mat4.cpp" />
     <ClCompile Include="src\Rendering\Rasterizer.cpp" />
     <ClCompile Include="src\Graphics\Color.cpp" />
@@ -169,6 +171,8 @@
     <ClInclude Include="includes\Graphics\Vertex.h" />
     <ClInclude Include="includes\Graphics\Texture.h" />
     <ClInclude Include="includes\Rendering\Rasterizer.h" />
+    <ClInclude Include="includes\SceneObjects\Light.h" />
+    <ClInclude Include="includes\Maths\Mat3.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

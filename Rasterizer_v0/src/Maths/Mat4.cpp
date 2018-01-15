@@ -30,6 +30,11 @@ Mat4::Mat4(const Mat4& p_other)
 }
 
 
+int Mat4::Sign(const unsigned& p_i, const unsigned& p_j)
+{
+	return static_cast<int>(-1 * ((p_i + 1) + (p_j + 1)));
+}
+
 // TRANFORMATION MATRICES
 Mat4 Mat4::CreateTranslationMatrix(const Vector3<float>& p_translation)
 {
@@ -236,6 +241,58 @@ Mat4 Mat4::Transpose() const
 		for (unsigned int j = 0; j < 4; ++j)
 			transpose.m_matrix[i][j] = m_matrix[j][i];
 	return transpose;
+}
+
+float Mat4::Determinant() const
+{
+	return m_matrix[0][0] * (m_matrix[1][1] * (m_matrix[2][2] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][2]) -
+			m_matrix[1][2] * (m_matrix[2][1] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][1]) +
+			m_matrix[1][3] * (m_matrix[2][1] * m_matrix[3][2] - m_matrix[2][2] * m_matrix[3][1])) -
+		m_matrix[0][1] * (m_matrix[1][0] * (m_matrix[2][2] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][2]) -
+			m_matrix[1][2] * (m_matrix[2][0] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][0]) +
+			m_matrix[1][3] * (m_matrix[2][0] * m_matrix[3][2] - m_matrix[2][2] * m_matrix[3][0])) +
+		m_matrix[0][2] * (m_matrix[1][0] * (m_matrix[2][1] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][1]) -
+			m_matrix[1][1] * (m_matrix[2][0] * m_matrix[3][3] - m_matrix[2][3] * m_matrix[3][0]) +
+			m_matrix[1][3] * (m_matrix[2][0] * m_matrix[3][1] - m_matrix[2][1] * m_matrix[3][0])) -
+		m_matrix[0][3] * (m_matrix[1][0] * (m_matrix[2][1] * m_matrix[3][2] - m_matrix[2][2] * m_matrix[3][1]) -
+			m_matrix[1][1] * (m_matrix[2][0] * m_matrix[3][2] - m_matrix[2][2] * m_matrix[3][0]) +
+			m_matrix[1][2] * (m_matrix[2][0] * m_matrix[3][1] - m_matrix[2][1] * m_matrix[3][0]));
+
+}
+
+Mat4 Mat4::Adjoint() const
+{
+	Mat4 adjoint;
+	for (unsigned int i = 0; i < 4; ++i)
+		for (unsigned int j = 0; j < 4; ++j)
+			adjoint.m_matrix[i][j] = Sign(i, j) * Minor(i, j).Determinant();
+
+	return adjoint;
+}
+
+Mat3 Mat4::Minor(int x, int y) const
+{
+	Mat3 minor;
+	unsigned int i = 0, j = 0;
+	for (unsigned int row = 0; row < 3; ++row)
+		for (unsigned int col = 0; col < 3; ++col)
+		{
+			if (row != x && col != y)
+			{
+				minor.m_matrix[i][j++] = m_matrix[row][col];
+				if (j == 3)
+				{
+					j = 0;
+					++i;
+				}
+			}
+		}
+	return minor;
+}
+
+Mat4 Mat4::Inverse() const
+{
+  return Adjoint() / Determinant();
 }
 
 float** Mat4::GetData()

@@ -18,14 +18,14 @@ Rasterizer::~Rasterizer()
 	delete[] m_depthBuffer;
 }
 
-void Rasterizer::RenderScene(Scene* pScene, Texture* pTarget) const
+void Rasterizer::RenderScene(Scene* p_scene, Texture* p_target) const
 {
-	pTarget->Clear(Color(0, 0, 0));
-	for (unsigned int i = 0; i < pTarget->Height() * pTarget->Width(); i++)
+	p_target->Clear(Color(0, 0, 0));
+	for (unsigned int i = 0; i < p_target->Height() * p_target->Width(); i++)
 	{
 		m_depthBuffer[i] = FLT_MAX;
 	}
-	std::vector<Entity> entities = pScene->GetEntities();
+	std::vector<Entity> entities = p_scene->GetEntities();
 	for (Entity entity : entities)
 	{
 		const std::shared_ptr<Mesh> mesh = entity.GetMesh();
@@ -33,22 +33,22 @@ void Rasterizer::RenderScene(Scene* pScene, Texture* pTarget) const
 		{
 			const Vertex* triangle = mesh->GetTriangleVertices(i);
 			Vertex transformedTriangle[3] = {
-				TransformPos(triangle[0], entity.GetTransformation()),
-				TransformPos(triangle[1], entity.GetTransformation()),
-				TransformPos(triangle[2], entity.GetTransformation())};
+				TransformVertex(triangle[0], entity.GetTransformation()),
+				TransformVertex(triangle[1], entity.GetTransformation()),
+				TransformVertex(triangle[2], entity.GetTransformation())};
 
 			delete[] triangle;
 			triangle = nullptr;
-//			DrawTriangleScanline(transformedTriangle, pTarget);
-//			DrawWireframe(transformedTriangle, pTarget);
-			DrawTriangleBarycenter(transformedTriangle, pTarget);
+//			DrawTriangleScanline(transformedTriangle, p_target);
+//			DrawWireframe(transformedTriangle, p_target);
+			DrawTriangleBarycenter(transformedTriangle, p_target, p_scene->GetLights());
 		}
 	}
 }
 
 
 
-void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_target) const
+void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_target, const std::vector<Light>& p_lights) const
 {
 
 	const Vec3 v0 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[0].GetPosition());
@@ -94,7 +94,31 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 					const unsigned char g = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[2].GetColor().g);
 					const unsigned char b = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[2].GetColor().b);
 
-					p_target->SetPixelColor(x, y, Color(r, g, b));
+					Vec3 norm = w0 * p_triangle[0].GetNormal() + w1 * p_triangle[1].GetNormal() + w2 * p_triangle[2].GetNormal();
+					Color illum;
+					for(Light light: p_lights)
+					{
+						Vec3 lm = light.GetPosition() - p;
+						lm.Normalize();
+
+						Vec3 reflection = 2 * (lm.DotProduct(norm)) * norm - lm;
+
+						const int shininess = 6;
+						float diffuse = lm.DotProduct(norm) * light.Diffuse();
+						float specular = powf(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular();
+
+//						Color ambient(light.Ambient() *  r, light.Ambient() *  g, light.Ambient() *  b);
+//						Color diffusec(, g * (lm.DotProduct(norm)) * light.Diffuse(), b * (lm.DotProduct(norm)) * light.Diffuse());
+//						Color specularc(r * pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular(), g * pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular(), b *pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular());
+
+					
+						illum = Color(r * (light.Ambient() + diffuse + specular),
+									  g * (light.Ambient() + diffuse + specular),
+									  b * (light.Ambient() + diffuse + specular));
+
+					}
+
+					p_target->SetPixelColor(x, y, illum);
 				}
 			}
 		}
@@ -113,7 +137,7 @@ void Rasterizer::DrawWireframe(const Vertex* p_triangle, Texture* p_target) cons
 	DrawLine((int)v2.x, (int)v2.y, (int)v0.x, (int)v0.y, p_target);
 }
 
-void Rasterizer::DrawTriangleScanline(Vertex* p_triangle, Texture* p_target)
+void Rasterizer::DrawTriangleScanline(Vertex* p_triangle, Texture* p_target) const
 {
 
 	SortVerticesBy(p_triangle);
@@ -250,12 +274,12 @@ void Rasterizer::SortVerticesBy(Vertex* p_vertices, bool x, bool y, bool z)
 	}
 }
 
-Vertex Rasterizer::TransformPos(const Vertex& v, Mat4 transform)
+Vertex Rasterizer::TransformVertex(const Vertex& v, const Mat4& transform)
 {
 	const Vec3 transformedPos = (transform * v.GetPosition()).ToVec3();
-	return Vertex(transformedPos, v.GetColor());
+	const Vec3 transformedNorm = (transform.Transpose().Inverse() * Vec4(v.GetNormal(), 0)).ToVec3();
+	return Vertex(transformedPos, transformedNorm, v.GetColor());
 }
-
 
 uint8_t Rasterizer::GetLineOctant(int x1, int y1, int x2, int y2)
 {

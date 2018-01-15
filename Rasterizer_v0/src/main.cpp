@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 		bool playing = true;
 
 		//Step 1
-//		std::vector<Vertex> triangle = { Vertex(-0.5,-0.5,0,Color(255,0,0)), Vertex(0.5,-0.5,0,Color(0,255,0)), Vertex(0,0.5,0,Color(0,0,255)) };
+//		Vertex triangle[3] = { Vertex(Vec3(-0.5,-0.5,0,-0.5), Vec3(-0.5,0),Color(255,0,0)), Vertex(Vec3(0.5,-0.5,0),Vec3(0.5,-0.5,0),Color(0,255,0)), Vertex(Vec3(0,0.5,0),Vec3(0,0.5,0),Color(0,0,255)) };
 
 		Entity cube(Mesh::CreateCube());
 		Entity sphere(Mesh::CreateSphere(16, 16));
@@ -25,9 +25,12 @@ int main(int argc, char* argv[])
 
 		cube.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(-0.5, 0, 2)));
 		sphere.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(0.5, 0, 2)));
+		cube.ApplyTransformation(Mat4::CreateRotationMatrix(Vec3(20, 20, 20)));
 
 		mainScene.AddEntity(sphere);
 		mainScene.AddEntity(cube);
+
+		mainScene.AddLight(0.0f, 0.0f, 0.0f, 0.2f, 0.8f, 0.4f);
 
 		while (playing)
 		{
@@ -40,10 +43,10 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			graphics.ClearBuffer();
+//			graphics.ClearBuffer();
 
 			//Step 1
-			//rasterizer.DrawTriangleBarycenter(triangle, graphics.GetBuffer());
+//			rasterizer.DrawTriangleBarycenter(triangle, graphics.GetBuffer(),mainScene.GetLights());
 
 			rasterizer.RenderScene(&mainScene, graphics.GetBuffer());
 			graphics.UpdateWindow();
