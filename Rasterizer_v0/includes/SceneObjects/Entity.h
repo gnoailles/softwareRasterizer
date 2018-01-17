@@ -17,7 +17,6 @@ namespace SceneObjects
 		Entity(const std::shared_ptr<Mesh> p_mesh, const Mat4& p_transform = Mat4::CreateTranslationMatrix(Vec3(0,0,0)));
 		~Entity();
 
-		void ApplyTransformation(const Mat4& p_transform);
 		std::shared_ptr<Mesh> GetMesh() const;
 		const Mat4& GetTransformation() const;
 		void SetTransformation(const Mat4& p_transform);

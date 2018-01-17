@@ -25,8 +25,8 @@ void Rasterizer::RenderScene(Scene* p_scene, Texture* p_target) const
 	{
 		m_depthBuffer[i] = FLT_MAX;
 	}
-	std::vector<Entity> entities = p_scene->GetEntities();
-	for (Entity entity : entities)
+
+	for (Entity entity : p_scene->GetEntities())
 	{
 		const std::shared_ptr<Mesh> mesh = entity.GetMesh();
 		for (unsigned i = 0; i < mesh->GetTriangleCount(); ++i)
@@ -46,11 +46,8 @@ void Rasterizer::RenderScene(Scene* p_scene, Texture* p_target) const
 	}
 }
 
-
-
 void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_target, const std::vector<Light>& p_lights) const
 {
-
 	const Vec3 v0 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[0].GetPosition());
 	const Vec3 v1 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[1].GetPosition());
 	const Vec3 v2 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[2].GetPosition());
@@ -83,7 +80,6 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 				w1 /= area;
 				w2 /= area;
 
-
 				float depth = w0 * p_triangle[0].GetPosition().z + w1 * p_triangle[1].GetPosition().z + w2 * p_triangle[2].GetPosition().z;
 
 				if (depth < m_depthBuffer[y * p_target->Width() + x])
@@ -108,16 +104,14 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 						float diffuse = lm.DotProduct(norm) * light.Diffuse();
 						float specular = powf(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular();
 
-//						Color ambient(light.Ambient() *  r, light.Ambient() *  g, light.Ambient() *  b);
-//						Color diffusec(, g * (lm.DotProduct(norm)) * light.Diffuse(), b * (lm.DotProduct(norm)) * light.Diffuse());
-//						Color specularc(r * pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular(), g * pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular(), b *pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular());
-
+						Color ambient(light.Ambient() *  r, light.Ambient() *  g, light.Ambient() *  b);
+						Color diffusec(r * (lm.DotProduct(norm)) * light.Diffuse() , g * (lm.DotProduct(norm)) * light.Diffuse(), b * (lm.DotProduct(norm)) * light.Diffuse());
+						Color specularc(r * pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular(), g * pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular(), b *pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular());
 					
 						illum = Color(r * (light.Ambient() + diffuse + specular),
 									  g * (light.Ambient() + diffuse + specular),
 									  b * (light.Ambient() + diffuse + specular),
 									  a * (light.Ambient() + diffuse + specular));
-
 					}
 
 					p_target->SetPixelColor(x, y, Color(r,g,b,a));

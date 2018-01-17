@@ -15,11 +15,6 @@ Entity::~Entity()
 {
 }
 
-void Entity::ApplyTransformation(const Mat4& p_transform)
-{
-	this->m_transformation *= p_transform;
-}
-
 std::shared_ptr<Mesh> Entity::GetMesh() const
 {
 	return m_mesh;

@@ -23,9 +23,7 @@ int main(int argc, char* argv[])
 		cube.SetColor(Color(255, 0, 0));
 		sphere.SetColor(Color(0, 0, 255));
 
-		cube.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(-0.5, 0, 2)));
-		sphere.SetTransformation(Mat4::CreateTranslationMatrix(Vec3(0.5, 0, 2)));
-		Mat4 rotation = Mat4::CreateRotationMatrix(Vec3(2, 2, 2));
+		float angle = 2.0f;
 
 		mainScene.AddEntity(sphere);
 		mainScene.AddEntity(cube);
@@ -43,18 +41,21 @@ int main(int argc, char* argv[])
 					break;
 				}
 			}
-
 			graphics.ClearBuffer();
+
+			mainScene.GetEntities()[0].SetTransformation(Mat4::CreateTransformMatrix(Vec3(1, 0, 2),Vec3(angle, angle, angle), Vec3(1, 1, 1)));
+			mainScene.GetEntities()[1].SetTransformation(Mat4::CreateTransformMatrix(Vec3(-1, 0, 2), Vec3(angle, angle, angle), Vec3(1, 1, 1)));
 
 			//Step 1
 //			rasterizer.DrawTriangleBarycenter(triangle, graphics.GetBuffer(),mainScene.GetLights());
-			mainScene.GetEntities()[0].ApplyTransformation(rotation);
-			mainScene.GetEntities()[1].ApplyTransformation(rotation);
 			rasterizer.RenderScene(&mainScene, graphics.GetBuffer());
 			graphics.UpdateWindow();
+
 			end = SDL_GetTicks();
 			std::cout << 1 / ((end - timer) / 1000.0f) << std::endl;
 			timer = end;
+
+			angle += 2.0f;
 		}
 		graphics.Close();
 	}
