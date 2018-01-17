@@ -93,6 +93,7 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 					const unsigned char r = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].GetColor().r + w2 * p_triangle[2].GetColor().r);
 					const unsigned char g = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[2].GetColor().g);
 					const unsigned char b = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[2].GetColor().b);
+					const unsigned char a = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().a + w1 * p_triangle[1].GetColor().a + w2 * p_triangle[2].GetColor().a);
 
 					Vec3 norm = w0 * p_triangle[0].GetNormal() + w1 * p_triangle[1].GetNormal() + w2 * p_triangle[2].GetNormal();
 					Color illum;
@@ -114,11 +115,12 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 					
 						illum = Color(r * (light.Ambient() + diffuse + specular),
 									  g * (light.Ambient() + diffuse + specular),
-									  b * (light.Ambient() + diffuse + specular));
+									  b * (light.Ambient() + diffuse + specular),
+									  a * (light.Ambient() + diffuse + specular));
 
 					}
 
-					p_target->SetPixelColor(x, y, illum);
+					p_target->SetPixelColor(x, y, Color(r,g,b,a));
 				}
 			}
 		}

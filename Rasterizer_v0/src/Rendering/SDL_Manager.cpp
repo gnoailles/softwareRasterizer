@@ -93,9 +93,13 @@ void SDL_Manager::UpdateWindow()
 {
 	if (this->m_activeBuffer)
 	{
+		SDL_SetRenderDrawColor(this->m_renderer,0,0,0,0);
+		SDL_RenderClear(this->m_renderer);
 		Color* pixels = this->m_activeBuffer->GetPixels();
 		for (int i = 0; i < this->m_activeBuffer->Width() * this->m_activeBuffer->Height(); ++i)
 		{
+			if ((pixels[i].r == 0 && pixels[i].g == 0 && pixels[i].b == 0) || pixels[i].a == 0)
+				continue;
 			SDL_SetRenderDrawColor(this->m_renderer, pixels[i].r, pixels[i].g, pixels[i].b, pixels[i].a);
 			SDL_RenderDrawPoint(this->m_renderer, i % this->m_activeBuffer->Width(), i / this->m_activeBuffer->Width());
 
