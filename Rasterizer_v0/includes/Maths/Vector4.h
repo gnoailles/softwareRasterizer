@@ -54,8 +54,11 @@ namespace Maths
 		{
 			if (this->w != 0)
 			{
+				if (this->w == 1)
+					return Vector4(this->x, this->y, this->z, 1);
+
 				Vector4 homogenized = this->Div(this->w);
-				homogenized.w /= this->w;
+				homogenized.w = 1;
 				return homogenized;
 			}
 			return Vector4();
@@ -63,9 +66,9 @@ namespace Maths
 
 		void Homogenize()
 		{
-			if (this.w != 0)
+			if (this->w != 0 && this->w != 1)
 			{
-				this->Div(this.w);
+				this->Div(this->w);
 				this->w /= this->w;
 			}
 		}

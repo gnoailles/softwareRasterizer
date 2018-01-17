@@ -18,19 +18,21 @@ int main(int argc, char* argv[])
 //		Vertex triangle[3] = { Vertex(Vec3(-0.5,-0.5,0,-0.5), Vec3(-0.5,0),Color(255,0,0)), Vertex(Vec3(0.5,-0.5,0),Vec3(0.5,-0.5,0),Color(0,255,0)), Vertex(Vec3(0,0.5,0),Vec3(0,0.5,0),Color(0,0,255)) };
 
 		Entity cube(Mesh::CreateCube());
-		Entity sphere(Mesh::CreateSphere(16, 16));
+		Entity cube2(Mesh::CreateCube());
 
 		cube.SetColor(Color(255, 0, 0));
-		sphere.SetColor(Color(0, 0, 255));
+		cube.SetColor(Color(0, 0, 255));
 
 		float angle = 2.0f;
 
-		mainScene.AddEntity(sphere);
+		mainScene.AddEntity(cube2);
 		mainScene.AddEntity(cube);
 
 		mainScene.AddLight(0.0f, 0.0f, 0.0f, 0.2f, 0.8f, 0.4f);
 		float end = 0;
 		float timer = SDL_GetTicks();
+
+		Mat4 proj = Rasterizer::CreatePerspectiveProjectionMatrix(graphics.GetBuffer()->Width(), graphics.GetBuffer()->Height(), 1, 10, 90);
 		while (playing)
 		{
 			SDL_Event e;
@@ -43,12 +45,12 @@ int main(int argc, char* argv[])
 			}
 			graphics.ClearBuffer();
 
-			mainScene.GetEntities()[0].SetTransformation(Mat4::CreateTransformMatrix(Vec3(1, 0, 2),Vec3(angle, angle, angle), Vec3(1, 1, 1)));
-			mainScene.GetEntities()[1].SetTransformation(Mat4::CreateTransformMatrix(Vec3(-1, 0, 2), Vec3(angle, angle, angle), Vec3(1, 1, 1)));
+			mainScene.GetEntities()[0].SetTransformation(Mat4::CreateTransformMatrix(Vec3(-1, 0, -2),Vec3(0, 0, 0), Vec3(1, 1, 1)));
+			mainScene.GetEntities()[1].SetTransformation(Mat4::CreateTransformMatrix(Vec3(1, 0, -2), Vec3(angle, angle, angle), Vec3(1, 1, 1)));
 
 			//Step 1
 //			rasterizer.DrawTriangleBarycenter(triangle, graphics.GetBuffer(),mainScene.GetLights());
-			rasterizer.RenderScene(&mainScene, graphics.GetBuffer());
+			rasterizer.RenderScene(&mainScene, graphics.GetBuffer(), proj);
 			graphics.UpdateWindow();
 
 			end = SDL_GetTicks();
@@ -56,6 +58,8 @@ int main(int argc, char* argv[])
 			timer = end;
 
 			angle += 2.0f;
+			if(angle > 360)
+				angle = fmod(angle, 360.0f);
 		}
 		graphics.Close();
 	}
