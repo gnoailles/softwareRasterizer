@@ -274,8 +274,8 @@ Mat3 Mat4::Minor(int x, int y) const
 {
 	Mat3 minor;
 	unsigned int i = 0, j = 0;
-	for (unsigned int row = 0; row < 3; ++row)
-		for (unsigned int col = 0; col < 3; ++col)
+	for (unsigned int row = 0; row < 4; ++row)
+		for (unsigned int col = 0; col < 4; ++col)
 		{
 			if (row != x && col != y)
 			{
@@ -292,7 +292,7 @@ Mat3 Mat4::Minor(int x, int y) const
 
 Mat4 Mat4::Inverse() const
 {
-  return Adjoint() / Determinant();
+  return Adjoint().Transpose() / Determinant();
 }
 
 float** Mat4::GetData()
