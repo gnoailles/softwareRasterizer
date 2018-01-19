@@ -45,9 +45,8 @@ std::shared_ptr<Mesh> Mesh::CreateCube()
 	cube->m_vertices.emplace_back(0.5f, 0.5f, -0.5f);
 	cube->m_vertices.emplace_back(-0.5f, 0.5f, -0.5f);
 
-	cube->m_indices.reserve(36);
 
-	//{m_position={x=-1.96515512 y=-0.497457892 z=2.46270013 } }
+	cube->m_indices.reserve(36);
 
 	// front
 	cube->AddTriangleIndices(0,1,2);
@@ -74,28 +73,29 @@ std::shared_ptr<Mesh> Mesh::CreateCube()
 	cube->AddTriangleIndices(6,7,3);
 
 	//Normals
-	for (int i = 0; i < 36; i += 3)
-	{
-		const Vec3 v0 = cube->m_vertices[cube->m_indices[i]].GetPosition() - cube->m_vertices[cube->m_indices[i+1]].GetPosition();
-		const Vec3 v1 = cube->m_vertices[cube->m_indices[i+1]].GetPosition() - cube->m_vertices[cube->m_indices[i+2]].GetPosition();
-		const Vec3 v2 = cube->m_vertices[cube->m_indices[i+2]].GetPosition() - cube->m_vertices[cube->m_indices[i]].GetPosition();
-
-		Vec3 n0 = v0.CrossProduct(v2);
-		n0.Normalize();
-		Vec3 n1 = v1.CrossProduct(v0);
-		n1.Normalize();
-		Vec3 n2 = v2.CrossProduct(v1);
-		n2.Normalize();
-
-		cube->m_vertices[cube->m_indices[i]].SetNormal(cube->m_vertices[cube->m_indices[i]].GetNormal() + n1);
-		cube->m_vertices[cube->m_indices[i+1]].SetNormal(cube->m_vertices[cube->m_indices[i+1]].GetNormal() + n1);
-		cube->m_vertices[cube->m_indices[i+2]].SetNormal(cube->m_vertices[cube->m_indices[i+2]].GetNormal() + n2);
+//	for (int i = 0; i < 36; i += 3)
+//	{
+//		const Vec3 v0 = cube->m_vertices[cube->m_indices[i]].GetPosition() - cube->m_vertices[cube->m_indices[i+1]].GetPosition();
+//		const Vec3 v1 = cube->m_vertices[cube->m_indices[i+1]].GetPosition() - cube->m_vertices[cube->m_indices[i+2]].GetPosition();
+//		const Vec3 v2 = cube->m_vertices[cube->m_indices[i+2]].GetPosition() - cube->m_vertices[cube->m_indices[i]].GetPosition();
+//
+//		Vec3 n0 = v2.CrossProduct(-v0);
+//		n0.Normalize();
+//		Vec3 n1 = v0.CrossProduct(-v1);
+//		n1.Normalize();
+//		Vec3 n2 = v1.CrossProduct(-v2);
+//		n2.Normalize();
+//
+//		cube->m_vertices[cube->m_indices[i]].SetNormal(cube->m_vertices[cube->m_indices[i]].GetNormal() + n1);
+//		cube->m_vertices[cube->m_indices[i+1]].SetNormal(cube->m_vertices[cube->m_indices[i+1]].GetNormal() + n1);
+//		cube->m_vertices[cube->m_indices[i+2]].SetNormal(cube->m_vertices[cube->m_indices[i+2]].GetNormal() + n2);
 		
-	}
+//	}
 
 	for (int i = 0; i < 8; ++i)
 	{
-		cube->m_vertices[i].SetNormal(cube->m_vertices[i].GetNormal().Normalize());
+		cube->m_vertices[cube->m_indices[i]].SetNormal(cube->m_vertices[cube->m_indices[i]].GetPosition().Normalize());
+//		cube->m_vertices[i].SetNormal(cube->m_vertices[i].GetNormal().Normalize());
 	}
 	return cube;
 }
@@ -122,7 +122,9 @@ std::shared_ptr<Mesh> Mesh::CreateSphere(const int& p_latitudeCount, const int& 
 			float z = (float)(sinPhi * sinTheta);
 
 			sphere->m_vertices.emplace_back(x, cosTheta, z);
-			sphere->m_vertices.back().SetNormal(x, cosTheta, z);
+			Vec3 normal(-x, -cosTheta - z);
+			normal.Normalize();
+			sphere->m_vertices.back().SetNormal(normal);
 		}
 	}
 	for (int latNumber2 = 0; latNumber2 < p_latitudeCount; latNumber2++) {

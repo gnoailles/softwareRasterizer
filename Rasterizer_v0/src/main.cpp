@@ -18,9 +18,9 @@ int main(int argc, char* argv[])
 //		Vertex triangle[3] = { Vertex(Vec3(-0.5,-0.5,0,-0.5), Vec3(-0.5,0),Color(255,0,0)), Vertex(Vec3(0.5,-0.5,0),Vec3(0.5,-0.5,0),Color(0,255,0)), Vertex(Vec3(0,0.5,0),Vec3(0,0.5,0),Color(0,0,255)) };
 
 		Entity cube2(Mesh::CreateCube());
-		Entity sphere(Mesh::CreateSphere(16,16));
+		Entity cube(Mesh::CreateCube());
 
-		sphere.SetColor(Color(255, 0, 0));
+		cube.SetColor(Color(255, 0, 0));
 		cube2.SetColor(Color(0, 0, 255));
 
 		cube2.SetTransformation(Mat4::CreateTransformMatrix(Vec3(-1, 0, -2), Vec3(0, 0, 0), Vec3(1, 1, 1)));
@@ -29,9 +29,9 @@ int main(int argc, char* argv[])
 		float angle = 2.0f;
 
 		mainScene.AddEntity(cube2);
-		mainScene.AddEntity(sphere);
+		mainScene.AddEntity(cube);
 
-		mainScene.AddLight(0.0f, 0.0f, 0.0f, 0.2f, 0.8f, 0.4f);
+		mainScene.AddLight(0.0f, 0.0f, 0.0f, 0.2f, 0.4f, 0.4f);
 		float end = 0;
 		float timer = SDL_GetTicks();
 
@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 			graphics.UpdateWindow();
 
 			end = SDL_GetTicks();
-			std::cout << 1 / ((end - timer) / 1000.0f) << std::endl;
+//			std::cout << 1 / ((end - timer) / 1000.0f) << std::endl;
 			timer = end;
 
 			angle += 2.0f;

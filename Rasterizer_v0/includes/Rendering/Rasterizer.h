@@ -38,6 +38,8 @@ namespace Rendering
 
 	private:
 
+		static Color ComputePhongIllumination(const std::vector<Light>& p_lights, const Vertex& p_vertex);
+
 		inline static float EdgeFunction(const Vec3 &a, const Vec3 &b, const Vec3 &c);
 		static void SortVerticesBy(Vertex* p_vertices, bool x = false, bool y = true, bool z = false);
 

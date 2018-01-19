@@ -64,6 +64,10 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 
 	float area = EdgeFunction(v0, v1, v2);
 
+	const Color v0Illum = ComputePhongIllumination(p_lights, p_triangle[0]);
+	Color v1Illum = ComputePhongIllumination(p_lights, p_triangle[1]);
+	Color v2Illum = ComputePhongIllumination(p_lights, p_triangle[2]);
+
 	for (unsigned int y = minY; y <= maxY; y++)
 	{
 		for (unsigned int x = minX; x <= maxX; x++)
@@ -86,35 +90,15 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 				{
 					m_depthBuffer[y * p_target->Width() + x] = depth;
 
-					const unsigned char r = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].GetColor().r + w2 * p_triangle[2].GetColor().r);
-					const unsigned char g = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[2].GetColor().g);
-					const unsigned char b = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[2].GetColor().b);
-					const unsigned char a = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().a + w1 * p_triangle[1].GetColor().a + w2 * p_triangle[2].GetColor().a);
+					const unsigned char r = static_cast<const unsigned char>(w0 * v0Illum.r + w1 * v1Illum.r + w2 * v2Illum.r);
+					const unsigned char g = static_cast<const unsigned char>(w0 * v0Illum.g + w1 * v1Illum.g + w2 * v2Illum.g);
+					const unsigned char b = static_cast<const unsigned char>(w0 * v0Illum.b + w1 * v1Illum.b + w2 * v2Illum.b);
+					const unsigned char a = static_cast<const unsigned char>(w0 * v0Illum.a + w1 * v1Illum.a + w2 * v2Illum.a);
 
-					Vec3 norm = w0 * p_triangle[0].GetNormal() + w1 * p_triangle[1].GetNormal() + w2 * p_triangle[2].GetNormal();
-					Color illum;
-					for(Light light: p_lights)
-					{
-						Vec3 lm = light.GetPosition() - p;
-						lm.Normalize();
-
-						Vec3 reflection = 2 * (lm.DotProduct(norm)) * norm - lm;
-
-						const int shininess = 6;
-						float diffuse = lm.DotProduct(norm) * light.Diffuse();
-						float specular = powf(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular();
-
-						Color ambient(light.Ambient() *  r, light.Ambient() *  g, light.Ambient() *  b);
-						Color diffusec(r * (lm.DotProduct(norm)) * light.Diffuse() , g * (lm.DotProduct(norm)) * light.Diffuse(), b * (lm.DotProduct(norm)) * light.Diffuse());
-						Color specularc(r * pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular(), g * pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular(), b *pow(reflection.DotProduct(Vec3(0.0f, 0.0f, 0.0f)), shininess) * light.Specular());
+//					Vec3 norm = w0 * p_triangle[0].GetNormal() + w1 * p_triangle[1].GetNormal() + w2 * p_triangle[2].GetNormal();
 					
-						illum = Color(r * (light.Ambient() + diffuse + specular),
-									  g * (light.Ambient() + diffuse + specular),
-									  b * (light.Ambient() + diffuse + specular),
-									  a * (light.Ambient() + diffuse + specular));
-					}
 
-					p_target->SetPixelColor(x, y, illum);
+					p_target->SetPixelColor(x, y, Color(r,g,b,a));
 				}
 			}
 		}
@@ -255,6 +239,28 @@ Vec3 Rasterizer::WorldToScreenCoord(int worldWidth, int worldHeight, int screenW
 	return Vec3(((pos.x / worldWidth) + 1) * 0.5f * screenWidth, screenHeight - ((pos.y / worldHeight) + 1) * 0.5f * screenHeight);
 }
 
+Color Rasterizer::ComputePhongIllumination(const std::vector<Light>& p_lights, const Vertex& p_vertex)
+{
+	Color illum;
+	for (Light light : p_lights)
+	{
+		const int shininess = 1;
+		Vec3 lm = light.GetPosition() - p_vertex.GetPosition();
+		lm.Normalize();
+
+		Vec3 reflection = (2 * (lm.DotProduct(p_vertex.GetNormal())) * p_vertex.GetNormal()) - lm;
+		const float diffuse = lm.DotProduct(p_vertex.GetNormal()) * light.Diffuse();
+		const float specular = powf(reflection.DotProduct(-p_vertex.GetPosition()), shininess) * light.Specular();
+
+		illum.r += p_vertex.GetColor().r * (light.Ambient() + diffuse + specular);
+		illum.g += p_vertex.GetColor().g * (light.Ambient() + diffuse + specular);
+		illum.b += p_vertex.GetColor().b * (light.Ambient() + diffuse + specular);
+		illum.a += p_vertex.GetColor().a * (light.Ambient() + diffuse + specular);
+
+	}
+	return illum;
+}
+
 inline float Rasterizer::EdgeFunction(const Vec3& a, const Vec3& b, const Vec3& c)
 {
 	return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
@@ -285,13 +291,13 @@ void Rasterizer::SortVerticesBy(Vertex* p_vertices, bool x, bool y, bool z)
 Vertex Rasterizer::TransformVertex(const Vertex& v, const Mat4& transform, const Mat4& p_projectionMatrix, const unsigned& p_width, const unsigned& p_height)
 {
 	Vec4 projectedVec = (p_projectionMatrix * transform * v.GetPosition());
-	const Vec3 transformedNorm = (transform.Transpose().Inverse() * Vec4(v.GetNormal(), 0)).ToVec3();
+	const Vec3 transformedNorm = (transform.Inverse().Transpose() * Vec4(v.GetNormal(), 0)).ToVec3();
 
 	projectedVec.Homogenize();
 	projectedVec.x = ((projectedVec.x / 2) + 1) * 0.5f * p_width;
 	projectedVec.y = p_height - ((projectedVec.y / 2) + 1) * 0.5f * p_height;
 
-	return Vertex(projectedVec.ToVec3(), transformedNorm, v.GetColor());
+	return Vertex(projectedVec.ToVec3(), transformedNorm.Normalize(), v.GetColor());
 }
 
 uint8_t Rasterizer::GetLineOctant(int x1, int y1, int x2, int y2)
