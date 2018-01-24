@@ -36,14 +36,30 @@ std::shared_ptr<Mesh> Mesh::CreateCube()
 
 	//front
 	cube->m_vertices.emplace_back(-0.5f, -0.5f, 0.5f);
+	cube->m_vertices.back().SetNormal(-0.5f, 0.5f, 0.5f);
+
 	cube->m_vertices.emplace_back(0.5f, -0.5f, 0.5f);
+	cube->m_vertices.back().SetNormal(0.5f, 0.5f, 0.5f);
+
 	cube->m_vertices.emplace_back(0.5f, 0.5f, 0.5f);
+	cube->m_vertices.back().SetNormal(0.5f, -0.5f, 0.5f);
+
 	cube->m_vertices.emplace_back(-0.5f, 0.5f, 0.5f);
+	cube->m_vertices.back().SetNormal(-0.5f, -0.5f, 0.5f);
+
+
 	//back
 	cube->m_vertices.emplace_back(-0.5f, -0.5f, -0.5f);
+	cube->m_vertices.back().SetNormal(-0.5f, 0.5f, -0.5f);
+
 	cube->m_vertices.emplace_back(0.5f, -0.5f, -0.5f);
+	cube->m_vertices.back().SetNormal(0.5f, 0.5f, -0.5f);
+
 	cube->m_vertices.emplace_back(0.5f, 0.5f, -0.5f);
+	cube->m_vertices.back().SetNormal(0.5f, -0.5f, -0.5f);
+
 	cube->m_vertices.emplace_back(-0.5f, 0.5f, -0.5f);
+	cube->m_vertices.back().SetNormal(-0.5f, -0.5f, -0.5f);
 
 
 	cube->m_indices.reserve(36);
@@ -79,24 +95,24 @@ std::shared_ptr<Mesh> Mesh::CreateCube()
 //		const Vec3 v1 = cube->m_vertices[cube->m_indices[i+1]].GetPosition() - cube->m_vertices[cube->m_indices[i+2]].GetPosition();
 //		const Vec3 v2 = cube->m_vertices[cube->m_indices[i+2]].GetPosition() - cube->m_vertices[cube->m_indices[i]].GetPosition();
 //
-//		Vec3 n0 = v2.CrossProduct(-v0);
+//		Vec3 n0 = v2.CrossProduct(v1);
 //		n0.Normalize();
-//		Vec3 n1 = v0.CrossProduct(-v1);
+//		Vec3 n1 = v2.CrossProduct(v1);
 //		n1.Normalize();
-//		Vec3 n2 = v1.CrossProduct(-v2);
+//		Vec3 n2 = v1.CrossProduct(v0);
 //		n2.Normalize();
 //
 //		cube->m_vertices[cube->m_indices[i]].SetNormal(cube->m_vertices[cube->m_indices[i]].GetNormal() + n1);
 //		cube->m_vertices[cube->m_indices[i+1]].SetNormal(cube->m_vertices[cube->m_indices[i+1]].GetNormal() + n1);
 //		cube->m_vertices[cube->m_indices[i+2]].SetNormal(cube->m_vertices[cube->m_indices[i+2]].GetNormal() + n2);
-		
+//		
 //	}
-
-	for (int i = 0; i < 8; ++i)
-	{
-		cube->m_vertices[cube->m_indices[i]].SetNormal(cube->m_vertices[cube->m_indices[i]].GetPosition().Normalize());
+//
+//	for (int i = 0; i < 8; ++i)
+//	{
+////		cube->m_vertices[cube->m_indices[i]].SetNormal(cube->m_vertices[cube->m_indices[i]].GetPosition().Normalize());
 //		cube->m_vertices[i].SetNormal(cube->m_vertices[i].GetNormal().Normalize());
-	}
+//	}
 	return cube;
 }
 
@@ -122,9 +138,7 @@ std::shared_ptr<Mesh> Mesh::CreateSphere(const int& p_latitudeCount, const int& 
 			float z = (float)(sinPhi * sinTheta);
 
 			sphere->m_vertices.emplace_back(x, cosTheta, z);
-			Vec3 normal(-x, -cosTheta - z);
-			normal.Normalize();
-			sphere->m_vertices.back().SetNormal(normal);
+			sphere->m_vertices.back().SetNormal(x,-cosTheta, z);
 		}
 	}
 	for (int latNumber2 = 0; latNumber2 < p_latitudeCount; latNumber2++) {

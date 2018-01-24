@@ -19,7 +19,9 @@ Vertex::Vertex(float x, float y, float z, const Color& p_color) :
 				  m_position(x, y, z), 
 				  m_normal(0, 0, 0), 
 				  m_color(p_color)
-{}
+{
+	m_normal.Normalize();
+}
 
 Vertex::~Vertex()
 {}
@@ -57,4 +59,5 @@ void Vertex::SetNormal(const Vec3& p_norm)
 void Vertex::SetNormal(float x, float y, float z)
 {
 	this->m_normal = Vec3(x,y,z);
+	this->m_normal.Normalize();
 }

@@ -32,7 +32,7 @@ Mat4::Mat4(const Mat4& p_other)
 
 int Mat4::Sign(const unsigned& p_i, const unsigned& p_j)
 {
-	return static_cast<int>(-1 * ((p_i + 1) + (p_j + 1)));
+	return pow(-1,((p_i + 1) + (p_j + 1)));
 }
 
 // TRANFORMATION MATRICES

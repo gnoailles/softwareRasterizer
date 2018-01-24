@@ -3,7 +3,7 @@
 
 using namespace Rendering;
 
-Rasterizer::Rasterizer(unsigned int p_width, unsigned int p_height) 
+Rasterizer::Rasterizer(const unsigned& p_width, const unsigned& p_height)
 {
 	m_depthBuffer = new float[p_width * p_height];
 
@@ -13,12 +13,13 @@ Rasterizer::Rasterizer(unsigned int p_width, unsigned int p_height)
 	}
 }
 
-Rasterizer::~Rasterizer() 
+Rasterizer::~Rasterizer()
 {
 	delete[] m_depthBuffer;
 }
 
-void Rasterizer::RenderScene(Scene* p_scene, Texture* p_target, const Mat4& p_projectionMatrix) const
+void Rasterizer::RenderScene(Scene* p_scene, Texture* p_target, const Mat4& p_projectionMatrix,
+                             const Mat4& p_inverseCameraMatrix) const
 {
 	p_target->Clear(Color(0, 0, 0));
 	for (unsigned int i = 0; i < p_target->Height() * p_target->Width(); i++)
@@ -33,21 +34,46 @@ void Rasterizer::RenderScene(Scene* p_scene, Texture* p_target, const Mat4& p_pr
 		{
 			const Vertex* triangle = mesh->GetTriangleVertices(i);
 			Vertex transformedTriangle[3] = {
-				TransformVertex(triangle[0], entity.GetTransformation(), p_projectionMatrix, p_target->Width(), p_target->Height()),
-				TransformVertex(triangle[1], entity.GetTransformation(), p_projectionMatrix, p_target->Width(), p_target->Height()),
-				TransformVertex(triangle[2], entity.GetTransformation(), p_projectionMatrix, p_target->Width(), p_target->Height())};
+				ToModelView(triangle[0], entity.GetTransformation(), p_inverseCameraMatrix),
+				ToModelView(triangle[1], entity.GetTransformation(), p_inverseCameraMatrix),
+				ToModelView(triangle[2], entity.GetTransformation(), p_inverseCameraMatrix)
+			};
 
 			delete[] triangle;
 			triangle = nullptr;
-//			DrawTriangleScanline(transformedTriangle, p_target);
-//			DrawWireframe(transformedTriangle, p_target);
-			DrawTriangleBarycenter(transformedTriangle, p_target, p_scene->GetLights());
+
+			//						DrawTriangleScanline(transformedTriangle, p_target);
+			//						DrawWireframe(transformedTriangle, p_target);
+			DrawTriangleBarycenter(transformedTriangle, p_projectionMatrix, p_inverseCameraMatrix, p_scene->GetLights(), p_target);
+
+			//DEBUG normals
+//			DrawLine(transformedTriangle[0].GetPosition().x, transformedTriangle[0].GetPosition().y,
+//			         transformedTriangle[0].GetPosition().x + transformedTriangle[0].GetNormal().x * 50,
+//			         transformedTriangle[0].GetPosition().y + transformedTriangle[0].GetNormal().y * 50, p_target);
+//
+//			DrawLine(transformedTriangle[1].GetPosition().x, transformedTriangle[1].GetPosition().y,
+//			         transformedTriangle[1].GetPosition().x + transformedTriangle[1].GetNormal().x * 50,
+//			         transformedTriangle[1].GetPosition().y + transformedTriangle[1].GetNormal().y * 50, p_target);
+//
+//			DrawLine(transformedTriangle[2].GetPosition().x, transformedTriangle[2].GetPosition().y,
+//			         transformedTriangle[2].GetPosition().x + transformedTriangle[2].GetNormal().x * 50,
+//			         transformedTriangle[2].GetPosition().y + transformedTriangle[2].GetNormal().y * 50, p_target);
 		}
 	}
 }
 
-void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_target, const std::vector<Light>& p_lights) const
+void Rasterizer::DrawTriangleBarycenter(Vertex* p_triangle, const Mat4& p_projectionMatrix,
+                                        const Mat4& p_inverseCameraMatrix,
+                                        const std::vector<Light>& p_lights, Texture* p_target) const
 {
+	const Color v0Illum = ComputePhongIllumination(p_lights, p_triangle[0], p_inverseCameraMatrix);
+	const Color v1Illum = ComputePhongIllumination(p_lights, p_triangle[1], p_inverseCameraMatrix);
+	const Color v2Illum = ComputePhongIllumination(p_lights, p_triangle[2], p_inverseCameraMatrix);
+
+	p_triangle[0] = ToScreen(p_triangle[0], p_projectionMatrix, p_target->Width(), p_target->Height());
+	p_triangle[1] = ToScreen(p_triangle[1], p_projectionMatrix, p_target->Width(), p_target->Height());
+	p_triangle[2] = ToScreen(p_triangle[2], p_projectionMatrix, p_target->Width(), p_target->Height());
+
 	const Vec3 v0 = p_triangle[0].GetPosition();
 	const Vec3 v1 = p_triangle[1].GetPosition();
 	const Vec3 v2 = p_triangle[2].GetPosition();
@@ -62,11 +88,8 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 	maxY = (maxY > p_target->Height()) ? p_target->Height() : maxY;
 	minY = (minY < 0) ? 0 : minY;
 
-	float area = EdgeFunction(v0, v1, v2);
+	const float area = EdgeFunction(v0, v1, v2);
 
-	const Color v0Illum = ComputePhongIllumination(p_lights, p_triangle[0]);
-	Color v1Illum = ComputePhongIllumination(p_lights, p_triangle[1]);
-	Color v2Illum = ComputePhongIllumination(p_lights, p_triangle[2]);
 
 	for (unsigned int y = minY; y <= maxY; y++)
 	{
@@ -84,21 +107,24 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 				w1 /= area;
 				w2 /= area;
 
-				float depth = 1 / (w0 / p_triangle[0].GetPosition().z + w1 / p_triangle[1].GetPosition().z + w2 / p_triangle[2].GetPosition().z);
+				float depth = 1 / (w0 / p_triangle[0].GetPosition().z + w1 / p_triangle[1].GetPosition().z + w2 / p_triangle[2].
+					GetPosition().z);
 
 				if (depth < m_depthBuffer[y * p_target->Width() + x])
-				{
+				{	
 					m_depthBuffer[y * p_target->Width() + x] = depth;
 
 					const unsigned char r = static_cast<const unsigned char>(w0 * v0Illum.r + w1 * v1Illum.r + w2 * v2Illum.r);
 					const unsigned char g = static_cast<const unsigned char>(w0 * v0Illum.g + w1 * v1Illum.g + w2 * v2Illum.g);
 					const unsigned char b = static_cast<const unsigned char>(w0 * v0Illum.b + w1 * v1Illum.b + w2 * v2Illum.b);
 					const unsigned char a = static_cast<const unsigned char>(w0 * v0Illum.a + w1 * v1Illum.a + w2 * v2Illum.a);
+					//
+					//										const unsigned char r = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].GetColor().r + w2 * p_triangle[3].GetColor().r);
+					//										const unsigned char g = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[3].GetColor().g);
+					//										const unsigned char b = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[3].GetColor().b);
+					//										const unsigned char a = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().a + w1 * p_triangle[1].GetColor().a + w2 * p_triangle[3].GetColor().a);
 
-//					Vec3 norm = w0 * p_triangle[0].GetNormal() + w1 * p_triangle[1].GetNormal() + w2 * p_triangle[2].GetNormal();
-					
-
-					p_target->SetPixelColor(x, y, Color(r,g,b,a));
+					p_target->SetPixelColor(x, y, Color(r, g, b, a));
 				}
 			}
 		}
@@ -107,25 +133,23 @@ void Rasterizer::DrawTriangleBarycenter(const Vertex* p_triangle, Texture* p_tar
 
 void Rasterizer::DrawWireframe(const Vertex* p_triangle, Texture* p_target)
 {
-//	const Vec3 v0 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[0].GetPosition());
-//	const Vec3 v1 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[1].GetPosition());
-//	const Vec3 v2 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[2].GetPosition());
-
 	//	WIREFRAME
-	DrawLine((int)p_triangle[0].GetPosition().x, (int)p_triangle[0].GetPosition().y, (int)p_triangle[1].GetPosition().x, (int)p_triangle[1].GetPosition().y, p_target);
-	DrawLine((int)p_triangle[1].GetPosition().x, (int)p_triangle[1].GetPosition().y, (int)p_triangle[2].GetPosition().x, (int)p_triangle[2].GetPosition().y, p_target);
-	DrawLine((int)p_triangle[2].GetPosition().x, (int)p_triangle[2].GetPosition().y, (int)p_triangle[0].GetPosition().x, (int)p_triangle[0].GetPosition().y, p_target);
+	DrawLine((int)p_triangle[0].GetPosition().x, (int)p_triangle[0].GetPosition().y, (int)p_triangle[1].GetPosition().x,
+	         (int)p_triangle[1].GetPosition().y, p_target);
+	DrawLine((int)p_triangle[1].GetPosition().x, (int)p_triangle[1].GetPosition().y, (int)p_triangle[2].GetPosition().x,
+	         (int)p_triangle[2].GetPosition().y, p_target);
+	DrawLine((int)p_triangle[2].GetPosition().x, (int)p_triangle[2].GetPosition().y, (int)p_triangle[0].GetPosition().x,
+	         (int)p_triangle[0].GetPosition().y, p_target);
 }
 
 void Rasterizer::DrawTriangleScanline(Vertex* p_triangle, Texture* p_target) const
 {
-
 	SortVerticesBy(p_triangle);
 
-	const Vec3 v1 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[0].GetPosition());
-	const Vec3 v2 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[1].GetPosition());
-	const Vec3 v3 = WorldToScreenCoord(5, 5, p_target->Width(), p_target->Height(), p_triangle[2].GetPosition());
-	
+	const Vec3 v1 = p_triangle[0].GetPosition();
+	const Vec3 v2 = p_triangle[1].GetPosition();
+	const Vec3 v3 = p_triangle[2].GetPosition();
+
 	if (v2.y == v3.y)
 	{
 		const Vertex triangle[3] = {v1,v2,v3};
@@ -133,25 +157,26 @@ void Rasterizer::DrawTriangleScanline(Vertex* p_triangle, Texture* p_target) con
 	}
 	else if (v1.y == v2.y)
 	{
-		const Vertex triangle[3] = { v1, v2, v3 };
-		DrawTopFlatTriangle(triangle , p_target);
+		const Vertex triangle[3] = {v1, v2, v3};
+		DrawTopFlatTriangle(triangle, p_target);
 	}
 	else
 	{
-		const Vec3 v4 (v1.x + (float)(v2.y - v1.y) / (float)(v3.y - v1.y) * (v3.x - v1.x) , v2.y);
-		
+		const Vec3 v4(v1.x + (float)(v2.y - v1.y) / (float)(v3.y - v1.y) * (v3.x - v1.x), v2.y);
+
 		const Vertex bottomFlatTriangle[3] = {v1, v2, v4};
-		const Vertex topFlatTriangle[3] = { v2, v4, v3 };
+		const Vertex topFlatTriangle[3] = {v2, v4, v3};
 		DrawBottomFlatTriangle(bottomFlatTriangle, p_target);
 		DrawTopFlatTriangle(topFlatTriangle, p_target);
 	}
-
 }
 
 void Rasterizer::DrawBottomFlatTriangle(const Vertex* p_triangle, Texture* p_target) const
 {
-	float slope1 = (p_triangle[1].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[1].GetPosition().y - p_triangle[0].GetPosition().y);
-	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y - p_triangle[0].GetPosition().y);
+	float slope1 = (p_triangle[1].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[1].GetPosition().y -
+		p_triangle[0].GetPosition().y);
+	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y -
+		p_triangle[0].GetPosition().y);
 
 	unsigned int curx1 = (unsigned)p_triangle[0].GetPosition().x, curx2 = (unsigned)p_triangle[0].GetPosition().x;
 
@@ -165,8 +190,10 @@ void Rasterizer::DrawBottomFlatTriangle(const Vertex* p_triangle, Texture* p_tar
 
 void Rasterizer::DrawTopFlatTriangle(const Vertex* p_triangle, Texture* p_target) const
 {
-	float slope1 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y - p_triangle[0].GetPosition().y);
-	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[1].GetPosition().x) / (p_triangle[2].GetPosition().y - p_triangle[1].GetPosition().y);
+	float slope1 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y -
+		p_triangle[0].GetPosition().y);
+	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[1].GetPosition().x) / (p_triangle[2].GetPosition().y -
+		p_triangle[1].GetPosition().y);
 
 	unsigned int curx1 = (unsigned)p_triangle[2].GetPosition().x, curx2 = (unsigned)p_triangle[2].GetPosition().x;
 
@@ -178,7 +205,8 @@ void Rasterizer::DrawTopFlatTriangle(const Vertex* p_triangle, Texture* p_target
 	}
 }
 
-void Rasterizer::DrawHorizontalLine(unsigned int x1, unsigned int x2, unsigned int y, Texture* p_target, Color p_color) const
+void Rasterizer::DrawHorizontalLine(unsigned int x1, unsigned int x2, unsigned int y, Texture* p_target,
+                                    Color p_color) const
 {
 	if (x1 > x2) std::swap(x1, x2);
 	for (unsigned int x = x1; x <= x2; ++x)
@@ -214,49 +242,56 @@ void Rasterizer::DrawLine(int x1, int y1, int x2, int y2, Texture* p_target)
 	}
 }
 
-Mat4 Rasterizer::CreatePerspectiveProjectionMatrix(int p_width, int p_height, float p_near, float p_far, float p_fov)
+Mat4 Rasterizer::CreatePerspectiveProjectionMatrix(const int& p_width, const int& p_height, const float& p_near,
+                                                   const float& p_far, const float& p_fov)
 {
-	float ratio = p_width / p_height;
-	float scale = 1 / tan(p_fov * 0.5 * M_PI / 180);
-	float dist = p_far - p_near;
+	const float ratio = p_width / (float)p_height;
+	const float top = tan(p_fov * 0.5 * M_PI / 180) * p_near;
+	const float right = top * ratio;
+	const float dist = p_far - p_near;
 
-	return Mat4{scale,	0,		0,							0,
-				0,		scale,	0,					0,
-				0,		0,		-p_far / dist,				-1,
-				0,		0,		-(p_far * p_near) / dist,	0};
+	// FOV Based perspective
+	//	const float scale = 1 / tan(p_fov * 0.5 * M_PI / 180);
+	//	return Mat4{scale,	0,		0,							0,
+	//				0,		scale * ratio,	0,					0,
+	//				0,		0,		-p_far / dist,				-1,
+	//				0,		0,		-(p_far * p_near) / dist,	0};
+
+	// Top-Bottom-Left-Right Based perspective
+	return Mat4{
+		p_near / right, 0, 0, 0,
+		0, p_near / top, 0, 0,
+		0, 0, -(p_far + p_near) / dist, -1,
+		0, 0, -2 * p_far * p_near / dist, 0
+	};
 }
 
-void Rasterizer::WorldToScreenCoord(const int worldWidth, const int worldHeight,
-                                    const int screenWidth, const int screenHeight,
-	const Vec3& pos, int& targetX, int& targetY)
+Color Rasterizer::ComputePhongIllumination(const std::vector<Light>& p_lights, const Vertex& p_vertex,
+                                           const Mat4& p_inverseCameraMatrix)
 {
-	targetX = static_cast<int>(((pos.x / worldWidth) + 1) * 0.5f * screenWidth);
-	targetY = static_cast<int>(screenHeight - ((pos.y / worldHeight) + 1) * 0.5f * screenHeight);
-}
-
-Vec3 Rasterizer::WorldToScreenCoord(int worldWidth, int worldHeight, int screenWidth, int screenHeight, const Vec3& pos)
-{
-	return Vec3(((pos.x / worldWidth) + 1) * 0.5f * screenWidth, screenHeight - ((pos.y / worldHeight) + 1) * 0.5f * screenHeight);
-}
-
-Color Rasterizer::ComputePhongIllumination(const std::vector<Light>& p_lights, const Vertex& p_vertex)
-{
-	Color illum;
+	Color illum(0,0,0,0);
 	for (Light light : p_lights)
 	{
+		Vec3 L = (p_inverseCameraMatrix * light.GetPosition()).ToVec3() - p_vertex.GetPosition();
+		L.Normalize();
+
+		Vec3 V = (p_inverseCameraMatrix.Inverse() * Vec4(0.0, 0.0, 0.0)).ToVec3() - p_vertex.GetPosition();
+		V.Normalize();
+
 		const int shininess = 1;
-		Vec3 lm = light.GetPosition() - p_vertex.GetPosition();
-		lm.Normalize();
+//		Vec3 R = (2 * (p_vertex.GetNormal().DotProduct(L)) * p_vertex.GetNormal()) - L;
 
-		Vec3 reflection = (2 * (lm.DotProduct(p_vertex.GetNormal())) * p_vertex.GetNormal()) - lm;
-		const float diffuse = lm.DotProduct(p_vertex.GetNormal()) * light.Diffuse();
-		const float specular = powf(reflection.DotProduct(-p_vertex.GetPosition()), shininess) * light.Specular();
+		Vec3 H = L + V;
+		H.Normalize();
 
-		illum.r += p_vertex.GetColor().r * (light.Ambient() + diffuse + specular);
-		illum.g += p_vertex.GetColor().g * (light.Ambient() + diffuse + specular);
-		illum.b += p_vertex.GetColor().b * (light.Ambient() + diffuse + specular);
-		illum.a += p_vertex.GetColor().a * (light.Ambient() + diffuse + specular);
+		const float diffuse = std::clamp(p_vertex.GetNormal().DotProduct(L), 0.f, 1.f) * light.Diffuse();
 
+		const float specular = (p_vertex.GetNormal().DotProduct(L) > 0) ? powf(p_vertex.GetNormal().DotProduct(H), shininess) * light.Specular() : 0;
+
+		illum.r += static_cast<unsigned char>(p_vertex.GetColor().r * (light.Ambient() + diffuse + specular));
+		illum.g += static_cast<unsigned char>(p_vertex.GetColor().g * (light.Ambient() + diffuse + specular));
+		illum.b += static_cast<unsigned char>(p_vertex.GetColor().b * (light.Ambient() + diffuse + specular));
+		illum.a += static_cast<unsigned char>(p_vertex.GetColor().a * (light.Ambient() + diffuse + specular));
 	}
 	return illum;
 }
@@ -288,16 +323,27 @@ void Rasterizer::SortVerticesBy(Vertex* p_vertices, bool x, bool y, bool z)
 	}
 }
 
-Vertex Rasterizer::TransformVertex(const Vertex& v, const Mat4& transform, const Mat4& p_projectionMatrix, const unsigned& p_width, const unsigned& p_height)
+Vertex Rasterizer::ToModelView(const Vertex& v,
+                               const Mat4& p_modelMatrix,
+                               const Mat4& p_inverseCameraMatrix)
 {
-	Vec4 projectedVec = (p_projectionMatrix * transform * v.GetPosition());
+	Mat4 transform = p_inverseCameraMatrix * p_modelMatrix;
+	Vec4 transformedVec = transform * v.GetPosition();
+
 	const Vec3 transformedNorm = (transform.Inverse().Transpose() * Vec4(v.GetNormal(), 0)).ToVec3();
 
-	projectedVec.Homogenize();
-	projectedVec.x = ((projectedVec.x / 2) + 1) * 0.5f * p_width;
-	projectedVec.y = p_height - ((projectedVec.y / 2) + 1) * 0.5f * p_height;
+	return Vertex(transformedVec.ToVec3(), transformedNorm, v.GetColor());
+}
 
-	return Vertex(projectedVec.ToVec3(), transformedNorm.Normalize(), v.GetColor());
+Vertex Rasterizer::ToScreen(const Vertex& v, const Mat4& p_projectionMatrix, const unsigned& p_width,
+                            const unsigned& p_height)
+{
+	Vec4 transformedVec = p_projectionMatrix * v.GetPosition();
+	transformedVec.Homogenize();
+	transformedVec.x = ((transformedVec.x / 2) + 1) * 0.5f * p_width;
+	transformedVec.y = p_height - ((transformedVec.y / 2) + 1) * 0.5f * p_height;
+
+	return Vertex(transformedVec.ToVec3(), v.GetNormal(), v.GetColor());
 }
 
 uint8_t Rasterizer::GetLineOctant(int x1, int y1, int x2, int y2)
@@ -328,35 +374,35 @@ void Rasterizer::SwitchToOctantOne(const uint8_t octant, int& x, int& y)
 {
 	switch (octant)
 	{
-	case 1:		// X,Y
+	case 1: // X,Y
 		return;
-	case 2:		// Y,X
+	case 2: // Y,X
 		std::swap(x, y);
 		break;
-	case 3:		// Y,-X
+	case 3: // Y,-X
 		x = -x;
 		std::swap(x, y);
 
 		break;
-	case 4:		// -X,Y
+	case 4: // -X,Y
 		x = -x;
 		break;
-	case 5:		// -X,-Y
-		x = -x;
-		y = -y;
-		break;
-	case 6:		// -Y,-X
+	case 5: // -X,-Y
 		x = -x;
 		y = -y;
-		std::swap(x, y);
-
 		break;
-	case 7:		// -Y,X
+	case 6: // -Y,-X
+		x = -x;
 		y = -y;
 		std::swap(x, y);
 
 		break;
-	case 8:		// X,-Y
+	case 7: // -Y,X
+		y = -y;
+		std::swap(x, y);
+
+		break;
+	case 8: // X,-Y
 		y = -y;
 		break;
 	default:
@@ -368,32 +414,32 @@ void Rasterizer::SwitchFromOctantOne(const uint8_t octant, int& x, int& y)
 {
 	switch (octant)
 	{
-	case 1:		// X,Y
+	case 1: // X,Y
 		return;
-	case 2:		// Y,X
+	case 2: // Y,X
 		std::swap(x, y);
 		break;
-	case 3:		// -Y,X
+	case 3: // -Y,X
 		y = -y;
 		std::swap(x, y);
 		break;
-	case 4:		// -X,Y
+	case 4: // -X,Y
 		x = -x;
 		break;
-	case 5:		// -X,-Y
+	case 5: // -X,-Y
 		x = -x;
 		y = -y;
 		break;
-	case 6:		// -Y,-X
+	case 6: // -Y,-X
 		x = -x;
 		y = -y;
 		std::swap(x, y);
 		break;
-	case 7:		// Y,-X
+	case 7: // Y,-X
 		x = -x;
 		std::swap(x, y);
 		break;
-	case 8:		// X,-Y
+	case 8: // X,-Y
 		y = -y;
 		break;
 	default:

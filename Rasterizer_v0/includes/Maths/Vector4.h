@@ -61,7 +61,7 @@ namespace Maths
 				homogenized.w = 1;
 				return homogenized;
 			}
-			return Vector4();
+			return *this;
 		}
 
 		void Homogenize()
