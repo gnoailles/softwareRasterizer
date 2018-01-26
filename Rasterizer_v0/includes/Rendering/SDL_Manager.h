@@ -23,6 +23,6 @@ namespace Rendering
 		Texture* GetBuffer() const;
 
 		void ClearBuffer(const Color& c = Color(0,0,0));
-		void UpdateWindow();
+		void UpdateWindow() const;
 	};
 }

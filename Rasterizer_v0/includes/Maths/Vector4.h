@@ -29,8 +29,8 @@ namespace Maths
 			return angle * M_PI / 180.0f;
 		}
 
-		Vector4(T p_x = 0.0f, T p_y = 0.0f, T p_z = 0.0f, T p_w = 1.0f) : x{ p_x }, y{ p_y }, z{ p_z }, w{ p_w } {}
-		Vector4(const Vector3<T>& vec3, T p_w = 1.0f) : x{ vec3.x }, y{ vec3.y }, z{ vec3.z }, w{ p_w } {}
+		Vector4(const T& p_x = 0.0f, const T& p_y = 0.0f, const T& p_z = 0.0f, const T& p_w = 1.0f) : x{ p_x }, y{ p_y }, z{ p_z }, w{ p_w } {}
+		Vector4(const Vector3<T>& vec3, const T& p_w = 1.0f) : x{ vec3.x }, y{ vec3.y }, z{ vec3.z }, w{ p_w } {}
 		Vector4(const Vector4 &other)
 		{
 			this->x = other.x;
@@ -52,11 +52,8 @@ namespace Maths
 	
 		Vector4 Homogenize() const
 		{
-			if (this->w != 0)
+			if (this->w != 0 && this->w != 1)
 			{
-				if (this->w == 1)
-					return Vector4(this->x, this->y, this->z, 1);
-
 				Vector4 homogenized = this->Div(this->w);
 				homogenized.w = 1;
 				return homogenized;
@@ -96,7 +93,7 @@ namespace Maths
 
 		T GetMagnitude() const
 		{
-			if (this.w != 1.0f)
+			if (this->w != 1.0f)
 			{
 				this->Homogenize();
 			}

@@ -28,18 +28,15 @@ namespace Maths
 		}
 
 		Vector3(T p_x, T p_y, T p_z = 0.0f) : x{ p_x }, y{ p_y }, z{ p_z } {}
-		Vector3(const Vector3 &other)
+		Vector3(const Vector3 &p_other) : x{p_other.x} , y{p_other.y}, z{p_other.z}
 		{
-			this->x = other.x;
-			this->y = other.y;
-			this->z = other.z;
 		}
 
-		Vector3 &operator=(const Vector3 &other)
+		Vector3& operator=(const Vector3& p_other)
 		{
-			this->x = other.x;
-			this->y = other.y;
-			this->z = other.z;
+			this->x = p_other.x;
+			this->y = p_other.y;
+			this->z = p_other.z;
 			return *this;
 		}
 

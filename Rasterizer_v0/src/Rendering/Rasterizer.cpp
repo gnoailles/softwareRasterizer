@@ -1,9 +1,10 @@
 #include <Rendering/Rasterizer.h>
 #include <algorithm>
-
 using namespace Rendering;
 
-Rasterizer::Rasterizer(const unsigned& p_width, const unsigned& p_height)
+Rasterizer::Rasterizer(const unsigned& p_width, const unsigned& p_height): m_viewportX(0), m_viewportY(0),
+                                                                           m_viewportWidth(p_width),
+                                                                           m_viewportHeight(p_height)
 {
 	m_depthBuffer = new float[p_width * p_height];
 
@@ -18,8 +19,15 @@ Rasterizer::~Rasterizer()
 	delete[] m_depthBuffer;
 }
 
-void Rasterizer::RenderScene(Scene* p_scene, Texture* p_target, const Mat4& p_projectionMatrix,
-                             const Mat4& p_inverseCameraMatrix) const
+void Rasterizer::SetViewport(const unsigned& x, const unsigned& y, const unsigned& p_width, const unsigned& p_height)
+{
+	this->m_viewportX = x;
+	this->m_viewportY = y;
+	this->m_viewportWidth = p_width;
+	this->m_viewportHeight = p_height;
+}
+
+void Rasterizer::RenderScene(Scene* p_scene, Texture* p_target, Camera& p_camera, uint8_t& p_flags) const
 {
 	p_target->Clear(Color(0, 0, 0));
 	for (unsigned int i = 0; i < p_target->Height() * p_target->Width(); i++)
@@ -34,58 +42,88 @@ void Rasterizer::RenderScene(Scene* p_scene, Texture* p_target, const Mat4& p_pr
 		{
 			const Vertex* triangle = mesh->GetTriangleVertices(i);
 			Vertex transformedTriangle[3] = {
-				ToModelView(triangle[0], entity.GetTransformation(), p_inverseCameraMatrix),
-				ToModelView(triangle[1], entity.GetTransformation(), p_inverseCameraMatrix),
-				ToModelView(triangle[2], entity.GetTransformation(), p_inverseCameraMatrix)
+				ToModelView(triangle[0], entity.GetTransformation(), p_camera.GetViewMatrix()),
+				ToModelView(triangle[1], entity.GetTransformation(), p_camera.GetViewMatrix()),
+				ToModelView(triangle[2], entity.GetTransformation(), p_camera.GetViewMatrix())
 			};
 
 			delete[] triangle;
 			triangle = nullptr;
 
-			//						DrawTriangleScanline(transformedTriangle, p_target);
-			//						DrawWireframe(transformedTriangle, p_target);
-			DrawTriangleBarycenter(transformedTriangle, p_projectionMatrix, p_inverseCameraMatrix, p_scene->GetLights(), p_target);
+			if (p_flags & RAST_PHONG)
+			{
+				transformedTriangle[0].SetColor(ComputePhong(p_scene->GetLights(), transformedTriangle[0], p_camera));
+				transformedTriangle[1].SetColor(ComputePhong(p_scene->GetLights(), transformedTriangle[1], p_camera));
+				transformedTriangle[2].SetColor(ComputePhong(p_scene->GetLights(), transformedTriangle[2], p_camera));
+			}
+			else if (p_flags & RAST_BLINN_PHONG)
+			{
+				transformedTriangle[0].SetColor(ComputeBlinnPhong(p_scene->GetLights(), transformedTriangle[0], p_camera));
+				transformedTriangle[1].SetColor(ComputeBlinnPhong(p_scene->GetLights(), transformedTriangle[1], p_camera));
+				transformedTriangle[2].SetColor(ComputeBlinnPhong(p_scene->GetLights(), transformedTriangle[2], p_camera));
+			}
 
-			//DEBUG normals
-//			DrawLine(transformedTriangle[0].GetPosition().x, transformedTriangle[0].GetPosition().y,
-//			         transformedTriangle[0].GetPosition().x + transformedTriangle[0].GetNormal().x * 50,
-//			         transformedTriangle[0].GetPosition().y + transformedTriangle[0].GetNormal().y * 50, p_target);
-//
-//			DrawLine(transformedTriangle[1].GetPosition().x, transformedTriangle[1].GetPosition().y,
-//			         transformedTriangle[1].GetPosition().x + transformedTriangle[1].GetNormal().x * 50,
-//			         transformedTriangle[1].GetPosition().y + transformedTriangle[1].GetNormal().y * 50, p_target);
-//
-//			DrawLine(transformedTriangle[2].GetPosition().x, transformedTriangle[2].GetPosition().y,
-//			         transformedTriangle[2].GetPosition().x + transformedTriangle[2].GetNormal().x * 50,
-//			         transformedTriangle[2].GetPosition().y + transformedTriangle[2].GetNormal().y * 50, p_target);
+			std::vector<Vec4> clippedTriangle;
+			clippedTriangle.reserve(3);
+			clippedTriangle.emplace_back(ToHomogeneousClipSpace(Vec4(transformedTriangle[0].GetPosition(), 1),
+			                                                    p_camera.GetPerspectiveProjectionMatrix()));
+			clippedTriangle.emplace_back(ToHomogeneousClipSpace(Vec4(transformedTriangle[1].GetPosition(), 1),
+			                                                    p_camera.GetPerspectiveProjectionMatrix()));
+			clippedTriangle.emplace_back(ToHomogeneousClipSpace(Vec4(transformedTriangle[2].GetPosition(), 1),
+			                                                    p_camera.GetPerspectiveProjectionMatrix()));
+
+			// CLIP
+			if (!(p_flags & RAST_ORTHO))
+				ClipPolygon(clippedTriangle);
+
+			if (clippedTriangle.size() == 0)
+				continue;
+			if (clippedTriangle.size() == 3)
+			{
+				transformedTriangle[0].SetPosition(ToViewport(clippedTriangle[0]));
+				transformedTriangle[1].SetPosition(ToViewport(clippedTriangle[1]));
+				transformedTriangle[2].SetPosition(ToViewport(clippedTriangle[2]));
+
+				if (p_flags & RAST_WIREFRAME)
+					DrawWireframe(transformedTriangle, p_target);
+				else
+					DrawTriangleBarycenter(transformedTriangle, p_scene, p_camera, p_target, (p_flags & RAST_PIXEL_BLINN_PHONG));
+			}
+			else
+			{
+				for (int i = 0; i < clippedTriangle.size() - 2; ++i)
+				{
+					if (!(p_flags & RAST_PIXEL_BLINN_PHONG))
+					{
+						transformedTriangle[0].SetPosition(ToViewport(clippedTriangle[0]));
+						transformedTriangle[1].SetPosition(ToViewport(clippedTriangle[i + 1]));
+						transformedTriangle[2].SetPosition(ToViewport(clippedTriangle[i + 2]));
+					}
+
+					if (p_flags & RAST_WIREFRAME)
+						DrawWireframe(transformedTriangle, p_target);
+					else
+						DrawTriangleBarycenter(transformedTriangle, p_scene, p_camera, p_target, (p_flags & RAST_PIXEL_BLINN_PHONG));
+				}
+			}
 		}
 	}
 }
 
-void Rasterizer::DrawTriangleBarycenter(Vertex* p_triangle, const Mat4& p_projectionMatrix,
-                                        const Mat4& p_inverseCameraMatrix,
-                                        const std::vector<Light>& p_lights, Texture* p_target) const
+void Rasterizer::DrawTriangleBarycenter(Vertex* p_triangle, Scene* p_scene, Camera& p_camera, Texture* p_target, const bool& p_perPixel) const
 {
-	const Color v0Illum = ComputePhongIllumination(p_lights, p_triangle[0], p_inverseCameraMatrix);
-	const Color v1Illum = ComputePhongIllumination(p_lights, p_triangle[1], p_inverseCameraMatrix);
-	const Color v2Illum = ComputePhongIllumination(p_lights, p_triangle[2], p_inverseCameraMatrix);
-
-	p_triangle[0] = ToScreen(p_triangle[0], p_projectionMatrix, p_target->Width(), p_target->Height());
-	p_triangle[1] = ToScreen(p_triangle[1], p_projectionMatrix, p_target->Width(), p_target->Height());
-	p_triangle[2] = ToScreen(p_triangle[2], p_projectionMatrix, p_target->Width(), p_target->Height());
-
 	const Vec3 v0 = p_triangle[0].GetPosition();
 	const Vec3 v1 = p_triangle[1].GetPosition();
 	const Vec3 v2 = p_triangle[2].GetPosition();
 
-	unsigned int maxX = static_cast<int>(std::max(v0.x, std::max(v1.x, v2.x)));
-	unsigned int minX = static_cast<int>(std::min(v0.x, std::min(v1.x, v2.x)));
-	unsigned int maxY = static_cast<int>(std::max(v0.y, std::max(v1.y, v2.y)));
-	unsigned int minY = static_cast<int>(std::min(v0.y, std::min(v1.y, v2.y)));
+	int maxX = static_cast<int>(std::max(v0.x, std::max(v1.x, v2.x)));
+	int minX = static_cast<int>(std::min(v0.x, std::min(v1.x, v2.x)));
+	int maxY = static_cast<int>(std::max(v0.y, std::max(v1.y, v2.y)));
+	int minY = static_cast<int>(std::min(v0.y, std::min(v1.y, v2.y)));
 
-	maxX = (maxX > p_target->Width()) ? p_target->Width() : maxX;
+	maxX = (maxX > p_target->Width()) ? p_target->Width() - 1 : maxX;
 	minX = (minX < 0) ? 0 : minX;
-	maxY = (maxY > p_target->Height()) ? p_target->Height() : maxY;
+	maxY = (maxY > p_target->Height()) ? p_target->Height() - 1 : maxY;
 	minY = (minY < 0) ? 0 : minY;
 
 	const float area = EdgeFunction(v0, v1, v2);
@@ -97,9 +135,9 @@ void Rasterizer::DrawTriangleBarycenter(Vertex* p_triangle, const Mat4& p_projec
 		{
 			const Vec3 p(static_cast<float>(x), static_cast<float>(y));
 
-			float w0 = EdgeFunction(v0, v1, p);
-			float w1 = EdgeFunction(v1, v2, p);
-			float w2 = EdgeFunction(v2, v0, p);
+			float w2 = EdgeFunction(v0, v1, p);
+			float w0 = EdgeFunction(v1, v2, p);
+			float w1 = EdgeFunction(v2, v0, p);
 
 			if (w0 >= 0 && w1 >= 0 && w2 >= 0)
 			{
@@ -111,20 +149,30 @@ void Rasterizer::DrawTriangleBarycenter(Vertex* p_triangle, const Mat4& p_projec
 					GetPosition().z);
 
 				if (depth < m_depthBuffer[y * p_target->Width() + x])
-				{	
+				{
 					m_depthBuffer[y * p_target->Width() + x] = depth;
 
-					const unsigned char r = static_cast<const unsigned char>(w0 * v0Illum.r + w1 * v1Illum.r + w2 * v2Illum.r);
-					const unsigned char g = static_cast<const unsigned char>(w0 * v0Illum.g + w1 * v1Illum.g + w2 * v2Illum.g);
-					const unsigned char b = static_cast<const unsigned char>(w0 * v0Illum.b + w1 * v1Illum.b + w2 * v2Illum.b);
-					const unsigned char a = static_cast<const unsigned char>(w0 * v0Illum.a + w1 * v1Illum.a + w2 * v2Illum.a);
-					//
-					//										const unsigned char r = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].GetColor().r + w2 * p_triangle[3].GetColor().r);
-					//										const unsigned char g = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].GetColor().g + w2 * p_triangle[3].GetColor().g);
-					//										const unsigned char b = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].GetColor().b + w2 * p_triangle[3].GetColor().b);
-					//										const unsigned char a = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().a + w1 * p_triangle[1].GetColor().a + w2 * p_triangle[3].GetColor().a);
+					const unsigned char r = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().r + w1 * p_triangle[1].
+						GetColor().r + w2 * p_triangle[2].GetColor().r);
+					const unsigned char g = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().g + w1 * p_triangle[1].
+						GetColor().g + w2 * p_triangle[2].GetColor().g);
+					const unsigned char b = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().b + w1 * p_triangle[1].
+						GetColor().b + w2 * p_triangle[2].GetColor().b);
+					const unsigned char a = static_cast<const unsigned char>(w0 * p_triangle[0].GetColor().a + w1 * p_triangle[1].
+						GetColor().a + w2 * p_triangle[2].GetColor().a);
 
-					p_target->SetPixelColor(x, y, Color(r, g, b, a));
+					if (p_perPixel)
+					{
+						Vec3 norm(w0 * p_triangle[0].GetNormal() + w1 * p_triangle[1].GetNormal() + w2 * p_triangle[2].GetNormal());
+
+						Color illum = ComputeBlinnPhong(p_scene->GetLights(), Vertex(Vec3(x, y, 0), norm, Color(r, g, b, a)), p_camera);
+
+						p_target->SetPixelColor(x, y, illum);
+					}
+					else
+					{
+						p_target->SetPixelColor(x, y, Color(r,g,b,a));
+					}
 				}
 			}
 		}
@@ -134,89 +182,18 @@ void Rasterizer::DrawTriangleBarycenter(Vertex* p_triangle, const Mat4& p_projec
 void Rasterizer::DrawWireframe(const Vertex* p_triangle, Texture* p_target)
 {
 	//	WIREFRAME
-	DrawLine((int)p_triangle[0].GetPosition().x, (int)p_triangle[0].GetPosition().y, (int)p_triangle[1].GetPosition().x,
-	         (int)p_triangle[1].GetPosition().y, p_target);
-	DrawLine((int)p_triangle[1].GetPosition().x, (int)p_triangle[1].GetPosition().y, (int)p_triangle[2].GetPosition().x,
-	         (int)p_triangle[2].GetPosition().y, p_target);
-	DrawLine((int)p_triangle[2].GetPosition().x, (int)p_triangle[2].GetPosition().y, (int)p_triangle[0].GetPosition().x,
-	         (int)p_triangle[0].GetPosition().y, p_target);
+	DrawLine(p_triangle[0], p_triangle[1], p_target);
+	DrawLine(p_triangle[1], p_triangle[2], p_target);
+	DrawLine(p_triangle[2], p_triangle[0], p_target);
 }
 
-void Rasterizer::DrawTriangleScanline(Vertex* p_triangle, Texture* p_target) const
+void Rasterizer::DrawLine(const Vertex& p_vt1, const Vertex& p_vt2, Texture* p_target)
 {
-	SortVerticesBy(p_triangle);
+	int x1 = p_vt1.GetPosition().x;
+	int y1 = p_vt1.GetPosition().y;
+	int x2 = p_vt2.GetPosition().x;
+	int y2 = p_vt2.GetPosition().y;
 
-	const Vec3 v1 = p_triangle[0].GetPosition();
-	const Vec3 v2 = p_triangle[1].GetPosition();
-	const Vec3 v3 = p_triangle[2].GetPosition();
-
-	if (v2.y == v3.y)
-	{
-		const Vertex triangle[3] = {v1,v2,v3};
-		DrawBottomFlatTriangle(triangle, p_target);
-	}
-	else if (v1.y == v2.y)
-	{
-		const Vertex triangle[3] = {v1, v2, v3};
-		DrawTopFlatTriangle(triangle, p_target);
-	}
-	else
-	{
-		const Vec3 v4(v1.x + (float)(v2.y - v1.y) / (float)(v3.y - v1.y) * (v3.x - v1.x), v2.y);
-
-		const Vertex bottomFlatTriangle[3] = {v1, v2, v4};
-		const Vertex topFlatTriangle[3] = {v2, v4, v3};
-		DrawBottomFlatTriangle(bottomFlatTriangle, p_target);
-		DrawTopFlatTriangle(topFlatTriangle, p_target);
-	}
-}
-
-void Rasterizer::DrawBottomFlatTriangle(const Vertex* p_triangle, Texture* p_target) const
-{
-	float slope1 = (p_triangle[1].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[1].GetPosition().y -
-		p_triangle[0].GetPosition().y);
-	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y -
-		p_triangle[0].GetPosition().y);
-
-	unsigned int curx1 = (unsigned)p_triangle[0].GetPosition().x, curx2 = (unsigned)p_triangle[0].GetPosition().x;
-
-	for (int scanlineY = (int)p_triangle[0].GetPosition().y; scanlineY <= p_triangle[1].GetPosition().y; ++scanlineY)
-	{
-		DrawHorizontalLine(curx1, curx2, scanlineY, p_target);
-		curx1 += (unsigned)slope1;
-		curx2 += (unsigned)slope2;
-	}
-}
-
-void Rasterizer::DrawTopFlatTriangle(const Vertex* p_triangle, Texture* p_target) const
-{
-	float slope1 = (p_triangle[2].GetPosition().x - p_triangle[0].GetPosition().x) / (p_triangle[2].GetPosition().y -
-		p_triangle[0].GetPosition().y);
-	float slope2 = (p_triangle[2].GetPosition().x - p_triangle[1].GetPosition().x) / (p_triangle[2].GetPosition().y -
-		p_triangle[1].GetPosition().y);
-
-	unsigned int curx1 = (unsigned)p_triangle[2].GetPosition().x, curx2 = (unsigned)p_triangle[2].GetPosition().x;
-
-	for (int scanlineY = (int)p_triangle[2].GetPosition().y; scanlineY > p_triangle[0].GetPosition().y; --scanlineY)
-	{
-		DrawHorizontalLine(curx1, curx2, scanlineY, p_target);
-		curx1 -= (unsigned)slope1;
-		curx2 -= (unsigned)slope2;
-	}
-}
-
-void Rasterizer::DrawHorizontalLine(unsigned int x1, unsigned int x2, unsigned int y, Texture* p_target,
-                                    Color p_color) const
-{
-	if (x1 > x2) std::swap(x1, x2);
-	for (unsigned int x = x1; x <= x2; ++x)
-	{
-		p_target->SetPixelColor(x, y, p_color);
-	}
-}
-
-void Rasterizer::DrawLine(int x1, int y1, int x2, int y2, Texture* p_target)
-{
 	uint8_t octant = GetLineOctant(x1, y1, x2, y2);
 	SwitchToOctantOne(octant, x1, y1);
 	SwitchToOctantOne(octant, x2, y2);
@@ -231,7 +208,7 @@ void Rasterizer::DrawLine(int x1, int y1, int x2, int y2, Texture* p_target)
 	{
 		++x1;
 		SwitchFromOctantOne(octant, x1, y1);
-		p_target->SetPixelColor(x1, y1, Color(255, 255, 255));
+		p_target->SetPixelColor(x1, y1, p_vt1.GetColor());
 		SwitchToOctantOne(octant, x1, y1);
 		e += dy;
 		if (e > 0)
@@ -246,52 +223,171 @@ Mat4 Rasterizer::CreatePerspectiveProjectionMatrix(const int& p_width, const int
                                                    const float& p_far, const float& p_fov)
 {
 	const float ratio = p_width / (float)p_height;
-	const float top = tan(p_fov * 0.5 * M_PI / 180) * p_near;
-	const float right = top * ratio;
 	const float dist = p_far - p_near;
+	const float scale = 1 / tan(p_fov * 0.5 * M_PI / 180);
 
 	// FOV Based perspective
-	//	const float scale = 1 / tan(p_fov * 0.5 * M_PI / 180);
-	//	return Mat4{scale,	0,		0,							0,
-	//				0,		scale * ratio,	0,					0,
-	//				0,		0,		-p_far / dist,				-1,
-	//				0,		0,		-(p_far * p_near) / dist,	0};
-
-	// Top-Bottom-Left-Right Based perspective
 	return Mat4{
-		p_near / right, 0, 0, 0,
-		0, p_near / top, 0, 0,
-		0, 0, -(p_far + p_near) / dist, -1,
-		0, 0, -2 * p_far * p_near / dist, 0
+		scale, 0, 0, 0,
+		0, scale * ratio, 0, 0,
+		0, 0, -p_far / dist, -(p_far * p_near) / dist,
+		0, 0, -1, 0
 	};
 }
 
-Color Rasterizer::ComputePhongIllumination(const std::vector<Light>& p_lights, const Vertex& p_vertex,
-                                           const Mat4& p_inverseCameraMatrix)
+Mat4 Rasterizer::CreatePerspectiveProjectionMatrix(const float& p_left, const float& p_right, const float& p_bottom,
+                                                   const float& p_top, const float& p_near, const float& p_far)
 {
-	Color illum(0,0,0,0);
+	// Top-Bottom-Left-Right Based perspective
+	return Mat4{
+		2 * p_near / (p_right - p_left), 0, (p_right + p_left) / (p_right - p_left), 0,
+		0, 2 * p_near / (p_top - p_bottom), (p_top + p_bottom) / (p_top - p_bottom), 0,
+		0, 0, -(p_far + p_near) / (p_far - p_near) , -2 * p_far * p_near / (p_far - p_near),
+		0, 0, -1, 0
+	};
+}
+
+Mat4 Rasterizer::CreateOrthographicProjectionMatrix(const float& p_left, const float& p_right, const float& p_bottom,
+                                                    const float& p_top, const float& p_near, const float& p_far)
+{
+	// Orthographic Projection
+	return Mat4{
+		2 / (p_right - p_left), 0, 0, -(p_right + p_left) / (p_right - p_left),
+		0, 2 / (p_top - p_bottom), 0, -(p_top + p_bottom) / (p_top - p_bottom),
+		0, 0, -2 / (p_far - p_near) , -(p_far + p_near) / (p_far - p_near),
+		0, 0, 0, 1
+	};
+}
+
+void Rasterizer::ClipPolygon(std::vector<Vec4>& p_polygon)
+{
+	ClipPolygonW(p_polygon);
+	if (p_polygon.size() > 0)
+		ClipPolygonXYZ(p_polygon);
+}
+
+void Rasterizer::ClipPolygonW(std::vector<Vec4>& p_polygon)
+{
+	std::vector<Vec4> input = p_polygon;
+
+	p_polygon.clear();
+	Vec4 prevVt = input.back();
+	char currDot, prevDot = (prevVt.w < 0.00001f) ? -1 : 1;
+	for (int i = 0; i < input.size(); ++i)
+	{
+		currDot = (input[i].w < 0.00001f) ? -1 : 1;
+		if (prevDot * currDot < 0)
+		{
+			float intersec = (0.00001 - prevVt.w) / (prevVt.w - input[i].w);
+			p_polygon.emplace_back(prevVt.x + intersec * (input[i].x - prevVt.x),
+			                       prevVt.y + intersec * (input[i].y - prevVt.y),
+			                       prevVt.z + intersec * (input[i].z - prevVt.z),
+			                       prevVt.w + intersec * (input[i].w - prevVt.w));
+		}
+		if (currDot > 0)
+		{
+			p_polygon.push_back(input[i]);
+		}
+		prevDot = currDot;
+		prevVt = input[i];
+	}
+}
+
+void Rasterizer::ClipPolygonXYZ(std::vector<Vec4>& p_polygon)
+{
+	for (int i = 0; i < 3; ++i)
+	{
+		if (p_polygon.size() == 0) return;
+		std::vector<Vec4> input = p_polygon;
+		p_polygon.clear();
+		Vec4 prevVt = input.back();
+		char prevDotHigh = (prevVt[i] <= prevVt.w) ? 1 : -1;
+		char prevDotLow = (-prevVt[i] <= prevVt.w) ? 1 : -1;
+		for (int j = 0; j < input.size(); ++j)
+		{
+			const char currDotHigh = (input[j][i] <= input[j].w) ? 1 : -1;
+			const char currDotLow = (-input[j][i] <= input[j].w) ? 1 : -1;
+			if (prevDotHigh * currDotHigh < 0)
+			{
+				const float intersec = (prevVt.w - prevVt[i]) / ((prevVt.w - prevVt[i]) - (input[j].w - input[j][i]));
+				p_polygon.emplace_back(prevVt.x + intersec * (input[i].x - prevVt.x),
+				                       prevVt.y + intersec * (input[i].y - prevVt.y),
+				                       prevVt.z + intersec * (input[i].z - prevVt.z),
+				                       prevVt.w + intersec * (input[i].w - prevVt.w));
+			}
+
+			if (prevDotLow * currDotLow < 0)
+			{
+				const float intersec = (prevVt.w + prevVt[i]) / ((prevVt.w + prevVt[i]) - (input[j].w + input[j][i]));
+				p_polygon.emplace_back(prevVt.x + intersec * (input[i].x - prevVt.x),
+				                       prevVt.y + intersec * (input[i].y - prevVt.y),
+				                       prevVt.z + intersec * (input[i].z - prevVt.z),
+				                       prevVt.w + intersec * (input[i].w - prevVt.w));
+			}
+			if (currDotHigh > 0 && currDotLow > 0)
+			{
+				p_polygon.push_back(input[j]);
+			}
+			prevDotHigh = currDotHigh;
+			prevDotLow = currDotLow;
+			prevVt = input[j];
+		}
+	}
+}
+
+Color Rasterizer::ComputePhong(const std::vector<Light>& p_lights, const Vertex& p_vertex, const Camera& p_camera)
+{
+	Color illum(0, 0, 0, 255);
+	const int shininess = 1;
+
 	for (Light light : p_lights)
 	{
-		Vec3 L = (p_inverseCameraMatrix * light.GetPosition()).ToVec3() - p_vertex.GetPosition();
+		Vec3 L = (p_camera.GetViewMatrix() * light.GetPosition()).ToVec3() - p_vertex.GetPosition();
 		L.Normalize();
 
-		Vec3 V = (p_inverseCameraMatrix.Inverse() * Vec4(0.0, 0.0, 0.0)).ToVec3() - p_vertex.GetPosition();
+		Vec3 V = p_camera.GetPosition() - p_vertex.GetPosition();
 		V.Normalize();
 
-		const int shininess = 1;
-//		Vec3 R = (2 * (p_vertex.GetNormal().DotProduct(L)) * p_vertex.GetNormal()) - L;
+		const Vec3 R = (2 * (p_vertex.GetNormal().DotProduct(L)) * p_vertex.GetNormal()) - L;
+
+		const float diffuse = std::clamp(p_vertex.GetNormal().DotProduct(L), 0.f, 1.f) * light.Diffuse();
+
+		const float specular = (p_vertex.GetNormal().DotProduct(L) > 0)
+			                       ? powf(std::clamp(V.DotProduct(R), 0.f, 1.f), shininess) * light.Specular()
+			                       : 0;
+
+		illum.r += static_cast<unsigned char>(p_vertex.GetColor().r * (light.Ambient() + diffuse + specular));
+		illum.g += static_cast<unsigned char>(p_vertex.GetColor().g * (light.Ambient() + diffuse + specular));
+		illum.b += static_cast<unsigned char>(p_vertex.GetColor().b * (light.Ambient() + diffuse + specular));
+	}
+	return illum;
+}
+
+Color Rasterizer::ComputeBlinnPhong(const std::vector<Light>& p_lights, const Vertex& p_vertex, const Camera& p_camera)
+{
+	Color illum(0, 0, 0, 255);
+	const int shininess = 1;
+
+	for (Light light : p_lights)
+	{
+		Vec3 L = (p_camera.GetViewMatrix() * light.GetPosition()).ToVec3() - p_vertex.GetPosition();
+		L.Normalize();
+
+		Vec3 V = p_camera.GetPosition() - p_vertex.GetPosition();
+		V.Normalize();
 
 		Vec3 H = L + V;
 		H.Normalize();
 
 		const float diffuse = std::clamp(p_vertex.GetNormal().DotProduct(L), 0.f, 1.f) * light.Diffuse();
 
-		const float specular = (p_vertex.GetNormal().DotProduct(L) > 0) ? powf(p_vertex.GetNormal().DotProduct(H), shininess) * light.Specular() : 0;
+		const float specular = (p_vertex.GetNormal().DotProduct(L) > 0)
+			                       ? powf(std::clamp(p_vertex.GetNormal().DotProduct(H), 0.f, 1.f), shininess) * light.Specular()
+			                       : 0;
 
 		illum.r += static_cast<unsigned char>(p_vertex.GetColor().r * (light.Ambient() + diffuse + specular));
 		illum.g += static_cast<unsigned char>(p_vertex.GetColor().g * (light.Ambient() + diffuse + specular));
 		illum.b += static_cast<unsigned char>(p_vertex.GetColor().b * (light.Ambient() + diffuse + specular));
-		illum.a += static_cast<unsigned char>(p_vertex.GetColor().a * (light.Ambient() + diffuse + specular));
 	}
 	return illum;
 }
@@ -327,23 +423,25 @@ Vertex Rasterizer::ToModelView(const Vertex& v,
                                const Mat4& p_modelMatrix,
                                const Mat4& p_inverseCameraMatrix)
 {
-	Mat4 transform = p_inverseCameraMatrix * p_modelMatrix;
-	Vec4 transformedVec = transform * v.GetPosition();
+	Vec4 transformedVec = p_inverseCameraMatrix * p_modelMatrix * v.GetPosition();
 
-	const Vec3 transformedNorm = (transform.Inverse().Transpose() * Vec4(v.GetNormal(), 0)).ToVec3();
+	const Vec4 transformedNorm = (p_modelMatrix.Inverse().Transpose() * Vec4(v.GetNormal(), 0));
 
-	return Vertex(transformedVec.ToVec3(), transformedNorm, v.GetColor());
+	return Vertex(transformedVec.ToVec3(), Vec3(transformedNorm.x, transformedNorm.y, transformedNorm.z), v.GetColor());
 }
 
-Vertex Rasterizer::ToScreen(const Vertex& v, const Mat4& p_projectionMatrix, const unsigned& p_width,
-                            const unsigned& p_height)
+Vec4 Rasterizer::ToHomogeneousClipSpace(const Vec4& v, const Mat4& p_projectionMatrix)
 {
-	Vec4 transformedVec = p_projectionMatrix * v.GetPosition();
-	transformedVec.Homogenize();
-	transformedVec.x = ((transformedVec.x / 2) + 1) * 0.5f * p_width;
-	transformedVec.y = p_height - ((transformedVec.y / 2) + 1) * 0.5f * p_height;
+	return (p_projectionMatrix * v);
+}
 
-	return Vertex(transformedVec.ToVec3(), v.GetNormal(), v.GetColor());
+Vec3 Rasterizer::ToViewport(const Vec4& v) const
+{
+	Vec3 homogenized = v.ToVec3();
+	homogenized.x = ((homogenized.x / 2) + 1) * 0.5f * this->m_viewportWidth + this->m_viewportX;
+	homogenized.y = this->m_viewportHeight - ((homogenized.y / 2) + 1) * 0.5f * this->m_viewportHeight + this->m_viewportY;
+
+	return homogenized;
 }
 
 uint8_t Rasterizer::GetLineOctant(int x1, int y1, int x2, int y2)

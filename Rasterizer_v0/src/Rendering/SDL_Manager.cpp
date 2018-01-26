@@ -17,7 +17,7 @@ bool SDL_Manager::Init(int p_w, int p_h)
 			SDL_WINDOWPOS_CENTERED,
 			p_w,
 			p_h,
-			SDL_WINDOW_SHOWN | SDL_WINDOW_MOUSE_FOCUS);
+			SDL_WINDOW_SHOWN | SDL_WINDOW_MOUSE_FOCUS | SDL_WINDOW_RESIZABLE);
 
 		if (this->m_window)
 		{
@@ -89,7 +89,7 @@ void SDL_Manager::ClearBuffer(const Color& c)
 		this->m_activeBuffer->Clear(c);
 }
 
-void SDL_Manager::UpdateWindow()
+void SDL_Manager::UpdateWindow() const
 {
 	if (this->m_activeBuffer)
 	{

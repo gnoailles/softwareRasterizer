@@ -350,7 +350,7 @@ float& Mat4::GetValue(unsigned int p_row, unsigned int p_col)
 
 const float& Mat4::operator()(unsigned int p_row, unsigned int p_col) const
 {
-	if (p_row <= 4 && p_col <= 4)
+	if (p_row < 4 && p_col < 4)
 		return this->m_matrix[p_row][p_col];
 	std::cout << "Out of Matrix" << std::endl;
 	return this->m_matrix[0][0];

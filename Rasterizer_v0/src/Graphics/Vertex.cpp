@@ -8,6 +8,19 @@ Vertex::Vertex(): m_position(0.0f, 0.0f, 0.0f),
 {
 }
 
+Vertex::Vertex(const Vertex& p_vertex): m_position(p_vertex.m_position),
+										m_normal(p_vertex.m_normal.Normalize()),
+										m_color(p_vertex.m_color)
+{
+}
+
+void Vertex::operator=(const Vertex& p_vertex)
+{
+	this->m_position = p_vertex.m_position;
+	this->m_normal = p_vertex.m_normal.Normalize();
+	this->m_color = p_vertex.m_color;
+}
+
 Vertex::Vertex(const Vec3& p_pos, const Vec3& p_norm, const Color& p_color) : 
 				  m_position(p_pos), 
 				  m_normal(p_norm.Normalize()),
