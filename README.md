@@ -21,6 +21,7 @@ The rasterizer has 5 main features :
 ![alt text](https://i.imgur.com/OCVVanr.png "Wireframe Screenshot")
 
 * Camera (Perspective & Orthographic Projection)
+![alt text](https://i.imgur.com/1uOYF3S.png "Orthographic Screenshot")
 
 ## External dependencies
 
